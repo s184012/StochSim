@@ -1,0 +1,8 @@
+\begin{tabular}{lrrr}
+\toprule
+{} &    Estimate &  Lower Bound &  Upper Bound \\
+\midrule
+Mean           &  264.861213 &   252.594764 &   277.127661 \\
+Std. Deviation &  197.671589 &   185.939783 &   209.403394 \\
+\bottomrule
+\end{tabular}
