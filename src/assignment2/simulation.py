@@ -60,9 +60,7 @@ class Patient:
 class HospitalSimulation:
 
     def __init__(self, arrival_time_dist, stay_time_dist, bed_distribution):
-        self.regular_patients = []
-        self.intensive_patients = []
-        self.other_patients = []
+        self.wards = []
         self.arr_dist = arrival_time_dist
         self.stay_dist = stay_time_dist
         self.bed_dist = bed_distribution
@@ -80,14 +78,17 @@ class HospitalSimulation:
         if bed_distribution is not None:
             self.bed_dist = bed_distribution
 
-        patient_q = self.sim_patients(type='all')
+        patient_q = self.sim_patients(type='all', t=0)
         heapq.heapify(patient_q)
+        t = 0
         while patient_q[0] <= 365:
             patient = heapq.heappop(patient_q)
             self.assign_patient_to_ward(patient)
+            t = patient.arrival_time
 
-            new_patient = self.simulate_patients(type=patient.type)
+            new_patient = self.simulate_patients(type=patient.type, curTime=t)
             self.update_patient_q(patient_q, new_patient)
+
         
 
     def sim_patients(self, curTime, type = 'all'):
@@ -114,4 +115,8 @@ class HospitalSimulation:
             heapq.heappush(heap, patient)
 
     
-
+    def assign_patient_to_ward(self, patient: Patient) -> None:
+        if self.ward_is_full(patient.Ward):
+            self.ward_switch(patient)
+        else:
+            pass
