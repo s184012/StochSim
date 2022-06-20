@@ -1,7 +1,15 @@
 from dataclasses import dataclass
 from enum import Enum, auto
 import heapq
+import numpy as np
 
+P = np.zeros([6,6])
+P[0, :] = [0.0, 0.05, 0.10, 0.05, 0.80, 0.0]
+P[1, :] = [0.20, 0.0, 0.50, 0.15, 0.15, 0.0]
+P[2, :] = [0.30, 0.20, 0.0, 0.20, 0.30, 0.0]
+P[3, :] = [0.35, 0.30, 0.05, 0.0, 0.30, 0.0]
+P[4, :] = [0.20, 0.10, 0.60, 0.10, 0.0, 0.0] 
+P[5, :] = [0.20, 0.20, 0.20, 0.20, 0.20, 0.0]
 
 class Ward(Enum):
     A = auto()
