@@ -12,21 +12,21 @@ P[4, :] = [0.20, 0.10, 0.60, 0.10, 0.0, 0.0]
 P[5, :] = [0.20, 0.20, 0.20, 0.20, 0.20, 0.0]
 
 class Ward(Enum):
-    A = auto()
-    B = auto()
-    C = auto()
-    D = auto()
-    E = auto()
-    F = auto()
+    A = 0
+    B = 1
+    C = 2
+    D = 3
+    E = 4
+    F = 5
 
 
 class PatientType(Enum):
-    A = auto()
-    B = auto()
-    C = auto()
-    D = auto()
-    E = auto()
-    F = auto()
+    A = 0
+    B = 1
+    C = 2
+    D = 3
+    E = 4
+    F = 5
 
 @dataclass
 class BedDistribution:
@@ -51,6 +51,9 @@ class HospitalSimulation:
         self.arr_dist = arrival_time_dist
         self.stay_dist = stay_time_dist
         self.bed_dist = bed_distribution
+
+    def ward_switch(patientType, P=P):
+        return np.random.choice(P[patientType][:])
     
     def simulate_year(self, bed_distribution=None):
         if bed_distribution is not None:
