@@ -12,7 +12,11 @@ P[3, :] = [0.35, 0.30, 0.05, 0.0, 0.30, 0.0]
 P[4, :] = [0.20, 0.10, 0.60, 0.10, 0.0, 0.0] 
 P[5, :] = [0.20, 0.20, 0.20, 0.20, 0.20, 0.0]
 
+arr_Times = [14.5, 11.0, 8.0, 6.5, 5.0, 13.0]
 
+len_stay = [2.9, 4.0, 4.5, 1.4, 3.9, 2.2]
+
+urgency = [7, 5 , 2, 10, 5]
 
 class Ward(Enum):
     A = 0
@@ -59,8 +63,8 @@ class HospitalSimulation:
         self.stay_dist = stay_time_dist
         self.bed_dist = bed_distribution
 
-    def ward_switch(patientType, P=P):
-        return np.random.choice(P[patientType][:])
+    def ward_switch(type, P=P):
+        return np.random.choice(a = np.range(6), p = P[type][:])
     
     def simulate_year(self, bed_distribution=None):
         if bed_distribution is not None:
@@ -77,7 +81,12 @@ class HospitalSimulation:
         
     
     def sim_patients(type = 'all'):
-        pass
+        if (type == 'all'):
+
+        else:
+
+        patients = Patient 
+        return patients
 
     
     def update_patient_q(self, heap, new_patients: Union['list[Patient]', Patient]):
