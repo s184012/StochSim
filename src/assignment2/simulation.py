@@ -49,7 +49,7 @@ class PatientType(Enum):
     D = 3
     E = 4
     F = 5
-    cured = 6
+    CURED = 6
     LOST = 7
 
 @dataclass
@@ -72,7 +72,7 @@ class Patient:
 
 class HospitalSimulation:
 
-    def __init__(self, arrival_time_dist, stay_time_dist, bed_distribution):
+    def __init__(self, arrival_time_dist, stay_time_dist, bed_distribution=bed_capacity):
         self.wards = {ward: Ward(bed_capacity[ward.value]) for ward in WardType if type(ward) != WardType.F}
         self.arr_dist = arrival_time_dist
         self.stay_dist = stay_time_dist
