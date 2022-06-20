@@ -116,7 +116,7 @@ class HospitalSimulation:
                 patient = Patient(type = i, ward=i, arrival_time = self.sim_arr(curTime, arr_Time = arr_Times[i]), stay_time = self.sim_stay(stay=len_stay[i]))
                 patients.append(patient)
         else:
-            patients = [Patient(type = type, ward=type, arrival_time = self.sim_arr(curTime, arr_Time = arr_Times[type]), stay_time = self.sim_stay(stay=len_stay[type]))]
+            patients = Patient(type = type, ward=type, arrival_time = self.sim_arr(curTime, arr_Time = arr_Times[type]), stay_time = self.sim_stay(stay=len_stay[type]))
         return patients
 
     
