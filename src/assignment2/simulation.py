@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from enum import Enum, auto
 import heapq
+from typing import Union
 import numpy as np
 
 P = np.zeros([6,6])
@@ -65,16 +66,26 @@ class HospitalSimulation:
         if bed_distribution is not None:
             self.bed_dist = bed_distribution
 
-        arrival_times = []
-        regular, intensive, other = self.sim_patients(type='all')
-        self.update_arrival_times([regular, intensive, other])
-        while arrival_times[0] <= 365:
-            pass
+        patient_q = self.sim_patients(type='all')
+        heapq.heapify(patient_q)
+        while patient_q[0] <= 365:
+            patient = heapq.heappop(patient_q)
+            self.assign_patient_to_ward(patient)
+
+            new_patient = self.simulate_patients(type=patient.type)
+            self.update_patient_q(patient_q, new_patient)
         
     
     def sim_patients(type = 'all'):
         pass
 
+    
+    def update_patient_q(self, heap, new_patients: Union['list[Patient]', Patient]):
+        if isinstance(new_patients, list):
+            for patient in new_patients:
+                heapq.heappush(heap, patient)
+        else:
+            heapq.heappush(heap, patient)
 
     
-        
+
