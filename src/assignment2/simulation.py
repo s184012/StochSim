@@ -18,7 +18,20 @@ len_stay = [2.9, 4.0, 4.5, 1.4, 3.9, 2.2]
 
 urgency = [7, 5 , 2, 10, 5]
 
-class Ward(Enum):
+bed_capacity = [55, 40, 30, 20, 20]
+
+@dataclass
+class Ward:
+    capacity: int
+    number_of_patients: int
+    rejected_patients: int
+
+
+    def is_full(self):
+        return self.number_of_patients == self.capacity
+
+
+class WardType(Enum):
     A = 0
     B = 1
     C = 2
@@ -50,7 +63,7 @@ class BedDistribution:
 @dataclass(order=True)
 class Patient:
     type: PatientType=field(compare = False)
-    ward: Ward=field(compare = False)
+    ward: WardType=field(compare = False)
     arrival_time: float
     stay_time: dict=field(compare = False)
 
@@ -58,7 +71,7 @@ class Patient:
 class HospitalSimulation:
 
     def __init__(self, arrival_time_dist, stay_time_dist, bed_distribution):
-        self.wards = []
+        self.wards = {ward: Ward(bed_capacity[ward.value]) for ward in WardType if type(ward) != WardType.F}
         self.arr_dist = arrival_time_dist
         self.stay_dist = stay_time_dist
         self.bed_dist = bed_distribution
@@ -108,7 +121,7 @@ class HospitalSimulation:
 
     
     def assign_patient_to_ward(self, patient: Patient) -> None:
-        if self.ward_is_full(patient.Ward):
+        if self.ward[patient.ward].is_full():
             self.ward_switch(patient)
         else:
             pass
