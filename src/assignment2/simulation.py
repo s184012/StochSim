@@ -31,34 +31,6 @@ class WardType(Enum):
     E = 4
     F = 5
 
-@dataclass
-class Ward:
-    type: WardType
-    capacity: int= field(init=False)
-    urgency: int = field(init=False)
-    total_number_of_treated_patients: int = 0
-    rejected_patients: int = 0
-    patients = field(default_factory=list)
-    
-    def __post_init__(self):
-        self.capacity = bed_capacity[self.type.value]
-        self.urgency = urgency[self.type.value]
-
-    @property
-    def number_of_current_patients(self):
-        return len(self.patients)
-    @property
-    def is_full(self):
-        return self.number_of_patients == self.capacity
-    
-    @property
-    def rejected_fraction(self):
-        return self.rejected_patients / self.total_number_of_treated_patients
-    
-    @property
-    def add_patient(self):
-        pass
-
 
 class PatientType(Enum):
     A = 0
@@ -77,6 +49,39 @@ class Patient:
     ward: WardType=field(compare = False)
     arrival_time: float
     stay_time: dict=field(compare = False)
+
+@dataclass
+class Ward:
+    type: WardType
+    capacity: int= field(init=False)
+    urgency: int = field(init=False)
+    total_number_of_treated_patients: int = 0
+    rejected_patients: int = 0
+    patients = field(default_factory=list)
+    
+    def __post_init__(self):
+        self.capacity = bed_capacity[self.type.value]
+        self.urgency = urgency[self.type.value]
+
+    @property
+    def number_of_current_patients(self):
+        return len(self.patients)
+
+    @property
+    def is_full(self):
+        return self.number_of_patients == self.capacity
+    
+    @property
+    def rejected_fraction(self):
+        return self.rejected_patients / self.total_number_of_treated_patients
+
+    def add_patient(self, patient: Patient):
+        heapq.heappush(self.patients, (patient.arrival_time + patient.stay_time, patient))
+        self.total_number_of_treated_patients += 1
+
+    def update_patients(self, curTime):
+        while self.patients[0][0] <= curTime:
+            heapq.heappop(self.patients)
 
 
 @dataclass
@@ -151,7 +156,8 @@ class HospitalSimulation:
 
     def assign_patient_to_ward(self, patient: Patient) -> None:
         ward = self.wards[patient.ward]
+        ward.update_patients()
         if ward.is_full():
             self.ward_switch(patient)
         else:
-            pass
+            ward.add_patient(patient)
