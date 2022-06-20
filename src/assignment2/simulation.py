@@ -103,11 +103,11 @@ class HospitalSimulation:
     def ward_switch(type, P=P):
         return np.random.choice(a = np.range(6), p = P[type][:])
     
-    def sim_arr(curTime, arr_Time):
-        return curTime + stats.expon.rvs(scale=1/arr_Time)
+    def sim_arr(self,curTime, arr_Time):
+        return curTime + self.arr_dist.rvs(scale=1/arr_Time)
 
-    def sim_stay(stay):
-        return stats.expon.rvs(scale = stay)
+    def sim_stay(self,stay):
+        return self.stay_dist.rvs(scale = stay)
 
     def simulate_year(self, bed_distribution=None):
         if bed_distribution is not None:
@@ -121,27 +121,26 @@ class HospitalSimulation:
             self.assign_patient_to_ward(patient)
             t = patient.arrival_time
 
-            new_patient = self.simulate_patients(type=patient.type, curTime=t)
+            new_patient = self.sim_patients(type=patient.type, curTime=t)
             self.update_patient_q(patient_q, new_patient)
 
-        
 
     def sim_patients(self, curTime, type = 'all'):
         if (type == 'all'):
             patients = []
             for i in range(6):
-                patient = Patient(type = i, ward=i, arrival_time = self.sim_arr(curTime,arr_Time = arr_Times[i]), stay_time = self.sim_stay(stay=len_stay[i]))
+                patient = Patient(type = i, ward=i, arrival_time = self.sim_arr(curTime, arr_Time = arr_Times[i]), stay_time = self.sim_stay(stay=len_stay[i]))
                 patients.append(patient)
         elif (type == 'noif'):
             patients = []
             for i in range(5):
-                patient = Patient(type = i, ward=i, arrival_time = self.sim_arr(curTime,arr_Time = arr_Times[i]), stay_time = self.sim_stay(stay=len_stay[i]))
+                patient = Patient(type = i, ward=i, arrival_time = self.sim_arr(curTime, arr_Time = arr_Times[i]), stay_time = self.sim_stay(stay=len_stay[i]))
                 patients.append(patient)
         else:
-            patients = [Patient(type = type, ward=type, arrival_time = self.sim_arr(curTime,arr_Time = arr_Times[type]), stay_time = self.sim_stay(stay=len_stay[type]))]
+            patients = Patient(type = type, ward=type, arrival_time = self.sim_arr(curTime, arr_Time = arr_Times[type]), stay_time = self.sim_stay(stay=len_stay[type]))
         return patients
 
-    
+
     def update_patient_q(self, heap, new_patients: Union['list[Patient]', Patient]):
         if isinstance(new_patients, list):
             for patient in new_patients:
@@ -149,7 +148,7 @@ class HospitalSimulation:
         else:
             heapq.heappush(heap, patient)
 
-    
+
     def assign_patient_to_ward(self, patient: Patient) -> None:
         ward = self.wards[patient.ward]
         if ward.is_full():
