@@ -34,6 +34,8 @@ class PatientType(Enum):
     D = 3
     E = 4
     F = 5
+    cured = 6
+    LOST = 7
 
 @dataclass
 class BedDistribution:
@@ -64,6 +66,10 @@ class HospitalSimulation:
     def ward_switch(type, P=P):
         return np.random.choice(a = np.range(6), p = P[type][:])
     
+    def patient_distribution(dist):
+        
+        return
+
     def simulate_year(self, bed_distribution=None):
         if bed_distribution is not None:
             self.bed_dist = bed_distribution
@@ -80,14 +86,16 @@ class HospitalSimulation:
             self.update_patient_q(patient_q, new_patient)
 
         
-    
+
     def sim_patients(type = 'all'):
         if (type == 'all'):
-            pass
-        else:
-            pass
+            patients = []
+            for i in range(6):
+                patient = Patient(type = i, ward=None, arrival_time = , stay_time = )
+                patients.append(patient)
 
-        patients = Patient 
+        else:
+            patients = Patient 
         return patients
 
     
