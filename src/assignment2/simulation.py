@@ -47,8 +47,14 @@ class PatientType(Enum):
 class Patient:
     type: PatientType=field(compare = False)
     ward: WardType=field(compare = False)
+    penalty: int=field(compare=False)
     arrival_time: float
     stay_time: dict=field(compare = False)
+
+    def __post_init__(self):
+        self.penalty = urgency[self.type.value]
+
+
 
 @dataclass
 class Ward:
@@ -104,9 +110,16 @@ class HospitalSimulation:
         self.arr_dist = arrival_time_dist
         self.stay_dist = stay_time_dist
         self.bed_dist = bed_distribution
+        self.total_penalty = 0
 
-    def ward_switch(type, P=P):
-        return np.random.choice(a = np.range(6), p = P[type][:])
+    def ward_switch(self, patient: Patient, P=P):
+        self.total_penalty += patient.penalty
+        ward_type = np.random.choice(a = list(WardType), p = P[patient.type][:])
+        next_ward = self.wards[ward_type]
+        if next_ward.is_full():
+            patient.type = PatientType.LOST
+            next_ward.rejected_patients += 1
+
     
     def sim_arr(self,curTime, arr_Time):
         return curTime + self.arr_dist.rvs(scale=1/arr_Time)
