@@ -3,6 +3,8 @@ from enum import Enum, auto
 import heapq
 from typing import Union
 import numpy as np
+from scipy import stats
+from sklearn.preprocessing import scale
 
 P = np.zeros([6,6])
 P[0, :] = [0.0, 0.05, 0.10, 0.05, 0.80, 0.0]
@@ -68,9 +70,11 @@ class HospitalSimulation:
     def ward_switch(type, P=P):
         return np.random.choice(a = np.range(6), p = P[type][:])
     
-    def patient_distribution(dist):
-        
-        return
+    def sim_arr(curTime, arr_Time):
+        return curTime + stats.expon.rvs(scale=1/arr_Time)
+
+    def sim_stay(stay):
+        return stats.expon.rvs(scale = stay)
 
     def simulate_year(self, bed_distribution=None):
         if bed_distribution is not None:
@@ -86,15 +90,19 @@ class HospitalSimulation:
             self.update_patient_q(patient_q, new_patient)
         
 
-    def sim_patients(type = 'all'):
+    def sim_patients(self, curTime, type = 'all'):
         if (type == 'all'):
             patients = []
             for i in range(6):
-                patient = Patient(type = i, ward=None, arrival_time = , stay_time = )
+                patient = Patient(type = i, ward=i, arrival_time = self.sim_arr(curTime,arr_Time = arr_Times[i]), stay_time = self.sim_stay(stay=len_stay[i]))
                 patients.append(patient)
-
+        elif (type == 'noif'):
+            patients = []
+            for i in range(5):
+                patient = Patient(type = i, ward=i, arrival_time = self.sim_arr(curTime,arr_Time = arr_Times[i]), stay_time = self.sim_stay(stay=len_stay[i]))
+                patients.append(patient)
         else:
-            patients = Patient 
+            patients = [Patient(type = type, ward=type, arrival_time = self.sim_arr(curTime,arr_Time = arr_Times[type]), stay_time = self.sim_stay(stay=len_stay[type]))]
         return patients
 
     
