@@ -99,10 +99,9 @@ class HospitalSimulation:
             self.assign_patient_to_ward(patient)
             t = patient.arrival_time
 
-            new_patient = self.simulate_patients(type=patient.type, curTime=t)
+            new_patient = self.sim_patients(type=patient.type, curTime=t)
             self.update_patient_q(patient_q, new_patient)
 
-        
 
     def sim_patients(self, curTime, type = 'all'):
         if (type == 'all'):
@@ -119,7 +118,7 @@ class HospitalSimulation:
             patients = Patient(type = type, ward=type, arrival_time = self.sim_arr(curTime, arr_Time = arr_Times[type]), stay_time = self.sim_stay(stay=len_stay[type]))
         return patients
 
-    
+
     def update_patient_q(self, heap, new_patients: Union['list[Patient]', Patient]):
         if isinstance(new_patients, list):
             for patient in new_patients:
@@ -127,7 +126,7 @@ class HospitalSimulation:
         else:
             heapq.heappush(heap, patient)
 
-    
+
     def assign_patient_to_ward(self, patient: Patient) -> None:
         if self.ward[patient.ward].is_full():
             self.ward_switch(patient)
