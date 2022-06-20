@@ -65,10 +65,16 @@ class HospitalSimulation:
         if bed_distribution is not None:
             self.bed_dist = bed_distribution
 
-        arrival_times = heapq.heapify([0])
-        regular, intensive, other = self.sim_patients(type = 'all')
-        while arrival_times[0][0] <= 365:
+        arrival_times = []
+        regular, intensive, other = self.sim_patients(type='all')
+        self.update_arrival_times([regular, intensive, other])
+        while arrival_times[0] <= 365:
             pass
+        
+    
+    def sim_patients(type = 'all'):
+        pass
+
 
     
         
