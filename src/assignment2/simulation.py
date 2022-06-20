@@ -22,16 +22,6 @@ urgency = [7, 5 , 2, 10, 5]
 
 bed_capacity = [55, 40, 30, 20, 20]
 
-@dataclass
-class Ward:
-    capacity: int
-    number_of_patients: int
-    rejected_patients: int
-
-
-    def is_full(self):
-        return self.number_of_patients == self.capacity
-
 
 class WardType(Enum):
     A = 0
@@ -40,6 +30,34 @@ class WardType(Enum):
     D = 3
     E = 4
     F = 5
+
+@dataclass
+class Ward:
+    type: WardType
+    capacity: int= field(init=False)
+    urgency: int = field(init=False)
+    total_number_of_treated_patients: int = 0
+    rejected_patients: int = 0
+    patients = field(default_factory=list)
+    
+    def __post_init__(self):
+        self.capacity = bed_capacity[self.type.value]
+        self.urgency = urgency[self.type.value]
+
+    @property
+    def number_of_current_patients(self):
+        return len(self.patients)
+    @property
+    def is_full(self):
+        return self.number_of_patients == self.capacity
+    
+    @property
+    def rejected_fraction(self):
+        return self.rejected_patients / self.total_number_of_treated_patients
+    
+    @property
+    def add_patient(self):
+        pass
 
 
 class PatientType(Enum):
@@ -52,6 +70,15 @@ class PatientType(Enum):
     CURED = 6
     LOST = 7
 
+
+@dataclass(order=True)
+class Patient:
+    type: PatientType=field(compare = False)
+    ward: WardType=field(compare = False)
+    arrival_time: float
+    stay_time: dict=field(compare = False)
+
+
 @dataclass
 class BedDistribution:
     A: int
@@ -62,18 +89,13 @@ class BedDistribution:
     F: int
 
 
-@dataclass(order=True)
-class Patient:
-    type: PatientType=field(compare = False)
-    ward: WardType=field(compare = False)
-    arrival_time: float
-    stay_time: dict=field(compare = False)
+
 
 
 class HospitalSimulation:
 
     def __init__(self, arrival_time_dist, stay_time_dist, bed_distribution=bed_capacity):
-        self.wards = {ward: Ward(bed_capacity[ward.value]) for ward in WardType if type(ward) != WardType.F}
+        self.wards = {ward: Ward(ward) for ward in WardType if type(ward) != WardType.F}
         self.arr_dist = arrival_time_dist
         self.stay_dist = stay_time_dist
         self.bed_dist = bed_distribution
@@ -129,7 +151,8 @@ class HospitalSimulation:
 
     
     def assign_patient_to_ward(self, patient: Patient) -> None:
-        if self.ward[patient.ward].is_full():
+        ward = self.wards[patient.ward]
+        if ward.is_full():
             self.ward_switch(patient)
         else:
             pass
