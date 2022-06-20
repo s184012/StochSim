@@ -68,11 +68,11 @@ class HospitalSimulation:
     def ward_switch(type, P=P):
         return np.random.choice(a = np.range(6), p = P[type][:])
     
-    def sim_arr(curTime, arr_Time):
-        return curTime + stats.expon.rvs(scale=1/arr_Time)
+    def sim_arr(self,curTime, arr_Time):
+        return curTime + self.arr_dist.rvs(scale=1/arr_Time)
 
-    def sim_stay(stay):
-        return stats.expon.rvs(scale = stay)
+    def sim_stay(self,stay):
+        return self.stay_dist.rvs(scale = stay)
 
     def simulate_year(self, bed_distribution=None):
         if bed_distribution is not None:
@@ -95,15 +95,15 @@ class HospitalSimulation:
         if (type == 'all'):
             patients = []
             for i in range(6):
-                patient = Patient(type = i, ward=i, arrival_time = self.sim_arr(curTime,arr_Time = arr_Times[i]), stay_time = self.sim_stay(stay=len_stay[i]))
+                patient = Patient(type = i, ward=i, arrival_time = self.sim_arr(curTime, arr_Time = arr_Times[i]), stay_time = self.sim_stay(stay=len_stay[i]))
                 patients.append(patient)
         elif (type == 'noif'):
             patients = []
             for i in range(5):
-                patient = Patient(type = i, ward=i, arrival_time = self.sim_arr(curTime,arr_Time = arr_Times[i]), stay_time = self.sim_stay(stay=len_stay[i]))
+                patient = Patient(type = i, ward=i, arrival_time = self.sim_arr(curTime, arr_Time = arr_Times[i]), stay_time = self.sim_stay(stay=len_stay[i]))
                 patients.append(patient)
         else:
-            patients = [Patient(type = type, ward=type, arrival_time = self.sim_arr(curTime,arr_Time = arr_Times[type]), stay_time = self.sim_stay(stay=len_stay[type]))]
+            patients = [Patient(type = type, ward=type, arrival_time = self.sim_arr(curTime, arr_Time = arr_Times[type]), stay_time = self.sim_stay(stay=len_stay[type]))]
         return patients
 
     
