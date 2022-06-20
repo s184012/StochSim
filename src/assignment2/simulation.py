@@ -40,6 +40,7 @@ class BedDistribution:
     F: int
 
 
+
 @dataclass(order=True)
 class Patient:
     type: PatientType=field(compare = False)
