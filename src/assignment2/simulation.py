@@ -81,6 +81,7 @@ class Ward:
 
     def update_patients(self, curTime):
         while self.patients[0][0] <= curTime:
+            self.patients[0][1].type = PatientType.CURED
             heapq.heappop(self.patients)
 
 
