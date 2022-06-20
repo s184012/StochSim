@@ -1,6 +1,8 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, auto
 import heapq
+
+
 
 
 class Ward(Enum):
@@ -25,13 +27,17 @@ class BedDistribution:
     A: int
     B: int
     C: int
+    D: int
+    E: int
+    F: int
 
-@dataclass
+
+@dataclass(order=True)
 class Patient:
-    type: PatientType
-    ward: Ward
+    type: PatientType=field(compare = False)
+    ward: Ward=field(compare = False)
     arrival_time: float
-    stay_time: dict
+    stay_time: dict=field(compare = False)
 
 
 class HospitalSimulation:
@@ -49,7 +55,9 @@ class HospitalSimulation:
             self.bed_dist = bed_distribution
 
         arrival_times = heapq.heapify([0])
-        regular, intensive, other = self.sim_patients()
-        while arrival_times[0] <= 365:
+        regular, intensive, other = self.sim_patients(type = 'all')
+        while arrival_times[0][0] <= 365:
             pass
 
+    
+        
