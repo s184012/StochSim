@@ -18,9 +18,9 @@ arr_Times = [14.5, 11.0, 8.0, 6.5, 5.0, 13.0]
 
 len_stay = [2.9, 4.0, 4.5, 1.4, 3.9, 2.2]
 
-urgency = [7, 5 , 2, 10, 5]
+urgency = [7, 5 , 2, 10, 5, 0]
 
-bed_capacity = [55, 40, 30, 20, 20]
+bed_capacity = [55, 40, 30, 20, 20, 0]
 
 
 class WardType(Enum):
@@ -46,13 +46,14 @@ class PatientType(Enum):
 @dataclass(order=True)
 class Patient:
     type: PatientType=field(compare = False)
-    ward: WardType=field(compare = False)
-    penalty: int=field(compare=False)
+    ward: WardType=field(compare = False, init=False)
+    penalty: int=field(compare=False, init=False)
     arrival_time: float
     stay_time: dict=field(compare = False)
 
     def __post_init__(self):
         self.penalty = urgency[self.type.value]
+        self.ward = list(WardType)[self.type.value]
 
 
 
@@ -63,7 +64,7 @@ class Ward:
     urgency: int = field(init=False)
     total_number_of_treated_patients: int = 0
     rejected_patients: int = 0
-    patients = field(default_factory=list)
+    patients: list = field(default_factory=list)
     
     def __post_init__(self):
         self.capacity = bed_capacity[self.type.value]
@@ -107,7 +108,7 @@ class BedDistribution:
 class HospitalSimulation:
 
     def __init__(self, arrival_time_dist, stay_time_dist, bed_distribution=bed_capacity):
-        self.wards = {ward: Ward(ward) for ward in WardType if type(ward) != WardType.F}
+        self.wards = {ward: Ward(ward) for ward in WardType if ward is not WardType.F}
         self.arr_dist = arrival_time_dist
         self.stay_dist = stay_time_dist
         self.bed_dist = bed_distribution
@@ -145,18 +146,16 @@ class HospitalSimulation:
 
 
     def sim_patients(self, curTime, type = 'all'):
-        if (type == 'all'):
+        if (type == 'all' or type == 'nof'):
             patients = []
-            for i in range(6):
-                patient = Patient(type = i, ward=i, arrival_time = self.sim_arr(curTime, arr_Time = arr_Times[i]), stay_time = self.sim_stay(stay=len_stay[i]))
-                patients.append(patient)
-        elif (type == 'noif'):
-            patients = []
-            for i in range(5):
-                patient = Patient(type = i, ward=i, arrival_time = self.sim_arr(curTime, arr_Time = arr_Times[i]), stay_time = self.sim_stay(stay=len_stay[i]))
+            for pType, arr_time, stay_time in zip(PatientType, arr_Times, len_stay):
+                if (pType is PatientType.F and type == 'nof'):
+                    break
+                patient = Patient(type=pType, arrival_time = self.sim_arr(curTime, arr_Time = arr_time), stay_time = self.sim_stay(stay=stay_time))
                 patients.append(patient)
         else:
-            patients = Patient(type = type, ward=type, arrival_time = self.sim_arr(curTime, arr_Time = arr_Times[type]), stay_time = self.sim_stay(stay=len_stay[type]))
+
+            patients = Patient(type = type, arrival_time = self.sim_arr(curTime, arr_Time = arr_Times[type.value]), stay_time = self.sim_stay(stay=len_stay[type.value]))
         return patients
 
 
