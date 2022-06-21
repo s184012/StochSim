@@ -88,7 +88,6 @@ class Ward:
         if not self.patients:
             return
 
-        print(self.patients[0][0])
         while len(self.patients) != 0 and self.patients[0][0] <= curTime:
             self.patients[0][1].type = PatientType.CURED
             heapq.heappop(self.patients)
@@ -118,7 +117,7 @@ class HospitalSimulation:
 
     def ward_switch(self, patient: Patient, P=P):
         self.total_penalty += patient.penalty
-        ward_type = np.random.choice(a = list(WardType), p = P[patient.type][:])
+        ward_type = np.random.choice(a = list(WardType), p = P[patient.type.value,:])
         next_ward = self.wards[ward_type]
         if next_ward.is_full:
             patient.type = PatientType.LOST
@@ -140,23 +139,23 @@ class HospitalSimulation:
         t = 0
         while t <= 365:
             patient = heapq.heappop(patient_q)
-            self.assign_patient_to_ward(patient, curTime=t)
-            t += patient.arrival_time
-
             new_patient = self.sim_patients(type=patient.type, curTime=t)
+
+            self.assign_patient_to_ward(patient, curTime=t)
+            t = patient.arrival_time
+
             self.update_patient_q(patient_q, new_patient)
 
 
     def sim_patients(self, curTime, type = 'all'):
         if (type == 'all' or type == 'nof'):
             patients = []
-            for pType, arr_time, stay_time in zip(PatientType, arr_Times, len_stay):
+            for pType, arr_time, stay_time in zip(list(PatientType), arr_Times, len_stay):
                 if (pType is PatientType.F and type == 'nof'):
                     break
                 patient = Patient(type=pType, arrival_time = self.sim_arr(curTime, arr_Time = arr_time), stay_time = self.sim_stay(stay=stay_time))
                 patients.append(patient)
         else:
-
             patients = Patient(type = type, arrival_time = self.sim_arr(curTime, arr_Time = arr_Times[type.value]), stay_time = self.sim_stay(stay=len_stay[type.value]))
         return patients
 
