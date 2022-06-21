@@ -132,7 +132,7 @@ class HospitalSimulation:
         if bed_distribution is not None:
             self.bed_dist = bed_distribution
 
-        patient_q = self.sim_patients(type='all', t=0)
+        patient_q = self.sim_patients(type='all', curTime=0)
         heapq.heapify(patient_q)
         t = 0
         while t <= 365:
