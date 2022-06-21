@@ -135,10 +135,10 @@ class HospitalSimulation:
         patient_q = self.sim_patients(type='all', t=0)
         heapq.heapify(patient_q)
         t = 0
-        while patient_q[0] <= 365:
+        while t <= 365:
             patient = heapq.heappop(patient_q)
             self.assign_patient_to_ward(patient)
-            t = patient.arrival_time
+            t += patient.arrival_time
 
             new_patient = self.sim_patients(type=patient.type, curTime=t)
             self.update_patient_q(patient_q, new_patient)
