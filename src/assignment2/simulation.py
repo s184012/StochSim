@@ -129,18 +129,18 @@ class HospitalSimulation:
     def sim_stay(self,stay):
         return self.stay_dist.rvs(scale = stay)
 
-    def simulate_year(self, bed_distribution=None):
+    def simulate_year(self, pType = 'nof', bed_distribution=None):
         if bed_distribution is not None:
             self.bed_dist = bed_distribution
 
-        patient_q = self.sim_patients(type='nof', curTime=0)
+        patient_q = self.sim_patients(type= pType, curTime=0)
         heapq.heapify(patient_q)
         t = 0
         while t <= 365:
             patient = heapq.heappop(patient_q)
             self.assign_patient_to_ward(patient, curTime=t)
             t += patient.arrival_time
-            
+
             new_patient = self.sim_patients(type=patient.type, curTime=t)
             self.update_patient_q(patient_q, new_patient)
 
