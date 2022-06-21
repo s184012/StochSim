@@ -4,7 +4,6 @@ import heapq
 from typing import Union
 import numpy as np
 from scipy import stats
-from sklearn.preprocessing import scale
 
 P = np.zeros([6,6])
 P[0, :] = [0.0, 0.05, 0.10, 0.05, 0.80, 0.0]
@@ -119,7 +118,7 @@ class HospitalSimulation:
         self.total_penalty += patient.penalty
         ward_type = np.random.choice(a = list(WardType), p = P[patient.type][:])
         next_ward = self.wards[ward_type]
-        if next_ward.is_full():
+        if next_ward.is_full:
             patient.type = PatientType.LOST
             next_ward.rejected_patients += 1
 
