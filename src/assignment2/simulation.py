@@ -141,7 +141,7 @@ class HospitalSimulation:
             patient = heapq.heappop(patient_q)
             self.assign_patient_to_ward(patient, curTime=t)
             t += patient.arrival_time
-
+            
             new_patient = self.sim_patients(type=patient.type, curTime=t)
             self.update_patient_q(patient_q, new_patient)
 
