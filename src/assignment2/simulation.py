@@ -75,7 +75,7 @@ class Ward:
 
     @property
     def is_full(self):
-        return self.number_of_patients == self.capacity
+        return self.number_of_current_patients == self.capacity
     
     @property
     def rejected_fraction(self):
@@ -86,6 +86,8 @@ class Ward:
         self.total_number_of_treated_patients += 1
 
     def update_patients(self, curTime):
+        if not self.patients:
+            return
         while self.patients[0][0] <= curTime:
             self.patients[0][1].type = PatientType.CURED
             heapq.heappop(self.patients)
@@ -132,12 +134,12 @@ class HospitalSimulation:
         if bed_distribution is not None:
             self.bed_dist = bed_distribution
 
-        patient_q = self.sim_patients(type='all', curTime=0)
+        patient_q = self.sim_patients(type='nof', curTime=0)
         heapq.heapify(patient_q)
         t = 0
         while t <= 365:
             patient = heapq.heappop(patient_q)
-            self.assign_patient_to_ward(patient)
+            self.assign_patient_to_ward(patient, curTime=t)
             t += patient.arrival_time
 
             new_patient = self.sim_patients(type=patient.type, curTime=t)
@@ -166,9 +168,9 @@ class HospitalSimulation:
             heapq.heappush(heap, patient)
 
 
-    def assign_patient_to_ward(self, patient: Patient) -> None:
+    def assign_patient_to_ward(self, patient: Patient, curTime) -> None:
         ward = self.wards[patient.ward]
-        ward.update_patients()
+        ward.update_patients(curTime = curTime)
         if ward.is_full():
             self.ward_switch(patient)
         else:
