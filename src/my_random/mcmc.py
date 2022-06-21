@@ -146,14 +146,14 @@ def gen_observations(size=1):
     return norm(mean, np.sqrt(var)).rvs(size=size), (mean, var)
 
 def norm_step(x):
-    dx = norm(loc = 0, scale=1e-4).rvs(2)
+    dx = norm(loc = 0, scale=1e-1).rvs(2)
     return x + dx
 
 def g3(x, obs):
     ln_pdf = 1/(2*pi*x[0]*x[1]*np.sqrt(1 - .5**2))\
         *np.exp(- (np.log(x[0])**2 - np.log(x[0])*np.log(x[1]) + np.log(x[1])**2) \
             / 2*(1-.5**2))
-    return sum(norm(loc=x[0], scale=np.sqrt(x[1])).pdf(obs)) * ln_pdf
+    return np.exp(sum(norm(loc=x[0], scale=np.sqrt(x[1])).logpdf(obs))) * ln_pdf
 
 
 def mcmc_continuous(x0, obs, g, step, burn_in=100, size=10_000):
