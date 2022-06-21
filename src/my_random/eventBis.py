@@ -25,11 +25,7 @@ class EventList:
     events: 'list[Event]'
     in_service: 'list[Event]'
 
-    def __init__(
-        self, arrival_time_distribution: stats.rv_continuous, 
-        service_time_distribution: stats.rv_continuous, 
-        number_of_events
-    ):
+    def __init__(self, arrival_time_distribution: stats.rv_continuous, service_time_distribution: stats.rv_continuous, number_of_events):
         self._arr_dist = arrival_time_distribution
         self._serv_dist = service_time_distribution
         self.events = self.generate_events(number_of_events)
@@ -72,10 +68,7 @@ class EventList:
 
 class BlockingEventSimulation:
 
-    def __init__(
-            self, arrival_time_distribution: stats.rv_continuous, 
-            service_time_distribution: stats.rv_continuous
-    ):
+    def __init__(self, arrival_time_distribution: stats.rv_continuous, service_time_distribution: stats.rv_continuous):
         self.arrival_dist = arrival_time_distribution
         self.service_dist = service_time_distribution
 
@@ -102,4 +95,11 @@ def calculate_theoretical_block_pct(m, a):
     return (a**10/factorial(m))/ sum([a**i / factorial(int(i)) for i in range(m+1)])
 
 if __name__ == '__main__':
-    pass
+    arr = stats.expon()
+    serv = stats.expon(scale=8)
+    sim = BlockingEventSimulation(arr, serv)
+    event, block_pct = sim.simulate(10_000, 10)
+    a=8
+    print((a**10/factorial(10))/ sum([a**i / factorial(int(i)) for i in range(10+1)]), block_pct)
+
+   
