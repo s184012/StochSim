@@ -164,13 +164,13 @@ class HospitalSimulation:
             for patient in new_patients:
                 heapq.heappush(heap, patient)
         else:
-            heapq.heappush(heap, patient)
+            heapq.heappush(heap, new_patients)
 
 
     def assign_patient_to_ward(self, patient: Patient, curTime) -> None:
         ward = self.wards[patient.ward]
         ward.update_patients(curTime = curTime)
-        if ward.is_full():
+        if ward.is_full:
             self.ward_switch(patient)
         else:
             ward.add_patient(patient)
