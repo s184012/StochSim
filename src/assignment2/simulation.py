@@ -22,7 +22,6 @@ urgency = [7, 5 , 2, 10, 5]
 
 bed_capacity = [55, 40, 30, 20, 20]
 
-
 class WardType(Enum):
     A = 0
     B = 1
