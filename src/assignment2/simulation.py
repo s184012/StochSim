@@ -115,10 +115,11 @@ class Ward:
     def add_patient(self, patient: Patient):
         heapq.heappush(self.patients, (patient.arrival_time + patient.stay_time, patient))
         self.total_number_of_treated_patients += 1
+        patient.state = PatientState(self.ward_type.value)
 
     def reject_patient(self, patient: Patient):
         patient.state = PatientState.REJECTED
-        self.reject_patient += 1
+        self.total_number_of_rejected_patients += 1
 
     
     def update_patients(self, time):
@@ -131,12 +132,21 @@ class HospitalSimulation:
 
     def __init__(self, arrival_time_dist, stay_time_dist, bed_distribution=bed_capacity):
         self.wards = {ward: Ward(ward) for ward in WardType if ward is not WardType.F}
+        self.patients = []
         self.arr_dist = arrival_time_dist
         self.stay_dist = stay_time_dist
         self.bed_dist = bed_distribution
         self.total_penalty = 0
         self.time = 0
 
+    
+    def reset_sim(self):
+        self.wards = {ward: Ward(ward) for ward in WardType if ward is not WardType.F}
+        self.patients = []
+        self.total_penalty = 0
+        self.time = 0
+        
+    
     def update_wards(self):
         """Checks all wards if they have patients who are cured and removes them from the patients list"""
         for ward in self.wards.values():
@@ -172,21 +182,27 @@ class HospitalSimulation:
         """Simulate a year in the given hospital"""
         if bed_distribution is not None:
             self.bed_dist = bed_distribution
-        self.total_penalty = 0
-        self.time = 0
+        self.reset_sim()
+        if pType == 'all':
+            self.init_f_ward()
+        
         patient_q = self.sim_patients(type= pType)
         heapq.heapify(patient_q)
         while self.time <= 365:
             patient = heapq.heappop(patient_q)
-            t = patient.arrival_time
-            new_patient = self.sim_patients(type=patient.type)
+            self.time = patient.arrival_time
+            print(f'{self.time:.0f}', end='\r')
+            new_patient = self.sim_patients(type=patient.state)
             self.update_patient_q(patient_q, new_patient)
             
             if patient.state is PatientState.F:
                 self.assign_f_patient(patient)
             else:
-                self.rellocate_bed_from_F()
+                if pType != 'nof':
+                    self.rellocate_bed_from_F()
                 self.assign_patient_to_ward(patient)
+            
+            self.patients.append(patient)
 
 
     def sim_patients(self, type = 'all'):
