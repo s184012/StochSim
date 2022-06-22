@@ -1,6 +1,8 @@
+from audioop import reverse
 from dataclasses import dataclass, field
 from enum import Enum, auto
 import heapq
+from turtle import update
 from typing import Union
 import numpy as np
 from scipy import stats
@@ -68,7 +70,7 @@ class Ward:
     capacity: int = field(init=False)
     urgency: int = field(init=False)
     total_number_of_treated_patients: int = 0
-    rejected_patients: int = 0
+    total_number_of_rejected_patients: int = 0
     patients: list = field(default_factory=list)
     
     def __post_init__(self):
@@ -77,15 +79,38 @@ class Ward:
 
     @property
     def number_of_current_patients(self):
+        """Number of currently enrolled patients"""
         return len(self.patients)
 
     @property
     def is_full(self):
+        """Checks if ward is full"""
         return self.number_of_current_patients == self.capacity
     
     @property
+    def number_of_processed_patients(self):
+        """Total number of patients who have tried to get into the ward"""
+        return self.total_number_of_treated_patients + self.total_number_of_rejected_patients
+
+    @property
     def rejected_fraction(self):
-        return self.rejected_patients / self.total_number_of_treated_patients
+        """Fraction of all processed patients who were rejected"""
+        return self.total_number_of_rejected_patients / self.number_of_processed_patients
+    
+    @property
+    def fill_fraction(self):
+        """Fraction of the total capacity used"""
+        return self.number_of_current_patients / self.capacity
+    
+    @property
+    def rellocation_score(self):
+        """Score expressing how well the ward can handle a rellocation of a bed"""
+        return self.fill_fraction * self.urgency
+
+    
+    def accepted_fraction(self, next_is_rejected=0):
+        return self.total_number_of_treated_patients / (self.number_of_processed_patients + next_is_rejected)
+    
 
     def add_patient(self, patient: Patient):
         heapq.heappush(self.patients, (patient.arrival_time + patient.stay_time, patient))
@@ -96,26 +121,10 @@ class Ward:
         self.reject_patient += 1
 
     
-    def update_patients(self, curTime):
-        if not self.patients:
-            return
-
-        while len(self.patients) != 0 and self.patients[0][0] <= curTime:
+    def update_patients(self, time):
+        while self.patients and self.patients[0][0] <= time:
             self.patients[0][1].type = PatientState.CURED
             heapq.heappop(self.patients)
-
-
-@dataclass
-class BedDistribution:
-    A: int
-    B: int
-    C: int
-    D: int
-    E: int
-    F: int
-
-
-
 
 
 class HospitalSimulation:
@@ -126,56 +135,76 @@ class HospitalSimulation:
         self.stay_dist = stay_time_dist
         self.bed_dist = bed_distribution
         self.total_penalty = 0
+        self.time = 0
+
+    def update_wards(self):
+        """Checks all wards if they have patients who are cured and removes them from the patients list"""
+        for ward in self.wards.values():
+            ward.update_patients(self.time)
 
     def switch_ward(self, patient: Patient, P=P):
+        """Assigns a patient to a non-preferred ward if possible, else the patient is rejected"""
         self.total_penalty += patient.penalty
-        next_ward = self.choose_new_ward(patient, P)
-        if next_ward.is_full:
-            next_ward.reject_patient(patient)
+        new_ward = self.choose_new_ward(patient, P)
+        if new_ward.is_full:
+            new_ward.reject_patient(patient)
         else:
-            next_ward.add_patient(patient)
+            new_ward.add_patient(patient)
 
     def choose_new_ward(self, patient: Patient, P=P):
+        "Returns a ward at random according to the switch probabilities"
         ward_type = np.random.choice(a = list(WardType), p = P[patient.state.value,:])
         return self.wards[ward_type]
 
-    def sim_arr(self,curTime, arr_Time):
-        return curTime + self.arr_dist.rvs(scale=1/arr_Time)
+    def sim_arr(self, arr_Time):
+        """Returns an arrival time at random according to the inter arrival time distribution"""
+        return self.time + self.arr_dist.rvs(scale=1/arr_Time)
 
     def sim_stay(self,stay):
+        """Returns a stay time at random according to the stay time distribution"""
         return self.stay_dist.rvs(scale = stay)
 
+    def init_f_ward(self):
+        """Initialize a new ward of type F"""
+        self.wards[WardType.F] = Ward(WardType.F)
+        
     def simulate_year(self, pType = 'nof', bed_distribution=None):
+        """Simulate a year in the given hospital"""
         if bed_distribution is not None:
             self.bed_dist = bed_distribution
         self.total_penalty = 0
-        patient_q = self.sim_patients(type= pType, curTime=0)
+        self.time = 0
+        patient_q = self.sim_patients(type= pType)
         heapq.heapify(patient_q)
-        t = 0
-        while t <= 365:
+        while self.time <= 365:
             patient = heapq.heappop(patient_q)
             t = patient.arrival_time
             new_patient = self.sim_patients(type=patient.type, curTime=t)
-
-            self.assign_patient_to_ward(patient, curTime=t)
-
             self.update_patient_q(patient_q, new_patient)
+            
+            if patient.state is PatientState.F:
+                self.assign_f_patient(patient)
+            else:
+                
+                self.assign_patient_to_ward(patient)
 
 
-    def sim_patients(self, curTime, type = 'all'):
+    def sim_patients(self, type = 'all'):
+        """Simulates patients of a certain type"""
         if (type == 'all' or type == 'nof'):
             patients = []
             for pType, arr_time, stay_time in zip(list(PatientState), arr_Times, len_stay):
                 if (pType is PatientState.F and type == 'nof'):
                     break
-                patient = Patient(state=pType, arrival_time = self.sim_arr(curTime, arr_Time = arr_time), stay_time = self.sim_stay(stay=stay_time))
+                patient = Patient(state=pType, arrival_time = self.sim_arr(arr_Time = arr_time), stay_time = self.sim_stay(stay=stay_time))
                 patients.append(patient)
         else:
-            patients = Patient(state = type, arrival_time = self.sim_arr(curTime, arr_Time = arr_Times[type.value]), stay_time = self.sim_stay(stay=len_stay[type.value]))
+            patients = Patient(state = type, arrival_time = self.sim_arr(arr_Time = arr_Times[type.value]), stay_time = self.sim_stay(stay=len_stay[type.value]))
         return patients
 
 
     def update_patient_q(self, heap, new_patients: Union['list[Patient]', Patient]):
+        """Adds a new patient to the correct spot in the queue"""
         if isinstance(new_patients, list):
             for patient in new_patients:
                 heapq.heappush(heap, patient)
@@ -183,10 +212,31 @@ class HospitalSimulation:
             heapq.heappush(heap, new_patients)
 
 
-    def assign_patient_to_ward(self, patient: Patient, curTime) -> None:
+    def assign_patient_to_ward(self, patient: Patient) -> None:
+        """If possible, assigns a patient to their preferred ward, else rellocates them"""
         ward = self.wards[patient.ward]
-        ward.update_patients(curTime = curTime)
+        ward.update_patients(self.time)
         if ward.is_full:
             self.switch_ward(patient)
         else:
             ward.add_patient(patient)
+
+
+    def assign_f_patient(self, patient: Patient):
+        ward = self.wards[WardType.F]
+        if ward.accepted_fraction(next_is_rejected=1) > 0.95:
+            self.switch_ward(patient)
+        else:
+            self.rellocate_bed_to_F()
+            self.assign_patient_to_ward(patient)
+    
+
+    def rellocate_bed_to_F(self):
+        self.update_wards()
+        f_ward = self.wards.get(WardType.F)
+        other_wards = [ward for type, ward in self.wards.items() if type is not WardType.F]
+        max_ward = max(other_wards, key=lambda ward: ward.rellocation_score)
+        if max_ward.rellocation_score > 0:
+            max_ward.capacity -= 1
+            f_ward.capacity += 1
+
