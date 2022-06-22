@@ -179,13 +179,13 @@ class HospitalSimulation:
         while self.time <= 365:
             patient = heapq.heappop(patient_q)
             t = patient.arrival_time
-            new_patient = self.sim_patients(type=patient.type, curTime=t)
+            new_patient = self.sim_patients(type=patient.type)
             self.update_patient_q(patient_q, new_patient)
             
             if patient.state is PatientState.F:
                 self.assign_f_patient(patient)
             else:
-                
+                self.rellocate_bed_from_F()
                 self.assign_patient_to_ward(patient)
 
 
@@ -235,8 +235,19 @@ class HospitalSimulation:
         self.update_wards()
         f_ward = self.wards.get(WardType.F)
         other_wards = [ward for type, ward in self.wards.items() if type is not WardType.F]
-        max_ward = max(other_wards, key=lambda ward: ward.rellocation_score)
-        if max_ward.rellocation_score > 0:
-            max_ward.capacity -= 1
+        min_ward = min(other_wards, key=lambda ward: (ward.rellocation_score, ward.urgency))
+        if not min_ward.is_full:
+            min_ward.capacity -= 1
             f_ward.capacity += 1
 
+    def rellocate_bed_from_F(self):
+        self.update_wards()
+        f_ward = self.wards.get(WardType.F)
+        if f_ward.is_full:
+            return
+
+        other_wards = [ward for type, ward in self.wards.items() if type is not WardType.F]
+        max_ward = max(other_wards, key=lambda ward: (ward.rellocation_score, ward.urgency))
+        
+        f_ward.capacity -= 1
+        max_ward.capacity += 1
