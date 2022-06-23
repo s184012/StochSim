@@ -180,34 +180,48 @@ class Ward:
 
 class SimulationResult:
     """Contains the result of a simulation"""
-    def __init__(self, patients: 'list[Patient]') -> None:
+    def __init__(self, patients: 'list[Patient]', penalty, ward_config: WardsConfigurations) -> None:
         self.patients = patients
+        self.penalty = penalty
+        self.config = ward_config
         self.number_of_patients = len(patients)
-        
+    
     def state(self, state: PatientState):
         return [p for p in self.patients]
 
     def state_pct_total(self, state: PatientState):
-        count = []
+        count = len([p for p in self.patients if p.state is state])
+        return count / self.number_of_patients * 100
 
-    def ward(self, type: WardType):
-        return [p for p in self.patients if p.preferred_ward]
+    def ward(self, ward: WardType):
+        return [p for p in self.patients if p.assigned_ward is ward]
     
-    def rejected_pct_ward(self, type: WardType):
-        rejected = len([p for p in self.ward(type) if p.state is PatientState.REJECTED])
-        return rejected / len(self.ward(type)) * 100
+    def state_from_ward(self, state: PatientState, ward: WardType):
+        return [p for p in self.ward(ward) if p.state is state]
     
+    def state_pct_ward(self, state: PatientState, ward: WardType):
+        return len(self.state_from_ward(state, ward)) / len(self.ward(ward)) * 100
     
+    def relocated_from(self, ward):
+        [p for p in self.state(PatientState.IN_WRONG_YARD) if p.preferred_ward is ward]
     
-
-
-
+    def relocated_from_pct(self, ward):
+        return len(self.relocated_from(ward)) / len(self.ward(ward))
+    
+    def penalty_from_ward(self, ward: WardType):
+        return len(self.relocated_from(ward)) * self.config[ward].urgency
+    
 
 
 class SimulationsSummary:
     """Summarises and compares different simulation results"""
     def __init__(self, results: 'list[SimulationResult]'):
-        pass
+        self.results = results
+    
+    
+    
+
+        
 
 
 class HospitalSimulation:
