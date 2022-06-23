@@ -264,7 +264,7 @@ class SimulationsSummary:
             lwrs.append(lwr)
             uprs.append(upr)
         index = [ward.name for ward in wards]
-        return pd.DataFrame({'mean': means, 'lwr': lwrs, 'upr': uprs}, index=index)
+        return pd.DataFrame({'mean': means, 'lwr': lwrs, 'upr': uprs}, index=index).copy()
     
     def expected_relocations(self, wards: 'list[WardType]'=list(WardType)):
         means, lwrs, uprs = [], [], []
@@ -274,7 +274,7 @@ class SimulationsSummary:
             lwrs.append(lwr)
             uprs.append(upr)
         index = [ward.name for ward in wards]
-        return pd.DataFrame({'mean': means, 'lwr': lwrs, 'upr': uprs}, index=index)
+        return pd.DataFrame({'mean': means, 'lwr': lwrs, 'upr': uprs}, index=index).copy()
     
     def expected_penalty(self, wards: 'list[WardType]' = list(WardType)):
         means, lwrs, uprs = [], [], []
@@ -284,7 +284,7 @@ class SimulationsSummary:
             lwrs.append(lwr)
             uprs.append(upr)
         index = [ward.name for ward in wards]
-        return pd.DataFrame({'mean': means, 'lwr': lwrs, 'upr': uprs}, index=index)
+        return pd.DataFrame({'mean': means, 'lwr': lwrs, 'upr': uprs}, index=index).copy()
 
 
 class HospitalSimulation:
@@ -589,10 +589,8 @@ def hist_performance(sim: SimulationsSummary):
         'Expected Admissions': admission,
         'Expected Relocations': rejection,
         'Expected Urgency': penalty,
-    },
-    index=list(WardType))
-    sns.histplot(data=df)
-    return df
+    })
+    sns.barplot(data=df.T)
 
 
 def hist_comp_plot(data1, data2, legend1='', legend2=''):
@@ -609,3 +607,9 @@ def hist_plot(data, legend=''):
     })
     sns.histplot(df)
     return
+
+
+def barplot(df=None, wards = list(WardType), label=''):
+    g = sns.barplot(x=[ward.name for ward in wards], y=df['mean'])
+    g.set_ylabel(label)
+    g.set_title(label)
