@@ -337,11 +337,36 @@ class HospitalSimulation:
         return self.stay_dist(mean_stay_time)
       
     
+    def simulate_expected_penalty(self, n, expected_penalty, stoptime=365):
+        return self.sim_multiple_with_f(
+            n,
+            self.allocate_bed_to_f_expected_penalty(expected_penalty),
+            self.relocate_none,
+            stoptime=365
+        )
+    
+    def simulate_already_stolen(self, n, stoptime=365):
+        return self.sim_multiple_with_f(
+            n,
+            self.allocate_bed_to_f_missing,
+            self.relocate_none,
+            stoptime=365
+        )
+
+    def simulate_occupation_and_penalty(self, n, stoptime=365):
+        return self.sim_multiple_with_f(
+            n,
+            self.allocate_bed_to_f_occ_penalty,
+            self.relocate_none,
+            stoptime=365
+        )
+
     def simulate_only_occupation(self, n, stoptime=365):
         return self.sim_multiple_with_f(
             n, 
             self.allocate_bed_to_f_occupation, 
-            self.relocate_none)
+            self.relocate_none,
+            stoptime=365)
 
     
     def sim_multiple_with_f(self, n, allocation, relocation, stoptime=365):
@@ -480,7 +505,7 @@ class HospitalSimulation:
         self.assign_patient_to_ward(patient)
     
 
-    def allocate_bed_to_f(self):
+    def allocate_bed_to_f_occ_penalty(self):
         self.update_wards()
         f_ward = self.wards.get(WardType.F)
         other_wards = [ward for type, ward in self.wards.items() if type is not WardType.F]
@@ -496,6 +521,28 @@ class HospitalSimulation:
         f_ward = self.wards.get(WardType.F)
         other_wards = [ward for type, ward in self.wards.items() if type is not WardType.F]
         wards = sorted(other_wards, key=lambda ward: ward.fill_fraction)
+        for ward in wards:
+            if not ward.is_full and ward.capacity > 0:
+                ward.capacity -= 1
+                f_ward.capacity += 1
+                return
+    
+    def allocate_bed_to_f_missing(self):
+        self.update_wards()
+        f_ward = self.wards.get(WardType.F)
+        other_wards = [ward for type, ward in self.wards.items() if type is not WardType.F]
+        wards = sorted(other_wards, key=lambda ward: self.ward_configs[ward].bed_capacity - ward.capacity)
+        for ward in wards:
+            if not ward.is_full and ward.capacity > 0:
+                ward.capacity -= 1
+                f_ward.capacity += 1
+                return
+    
+    def allocate_bed_to_f_expected_penalty(self, expected_penalty):
+        self.update_wards()
+        f_ward = self.wards.get(WardType.F)
+        other_wards = [ward for type, ward in self.wards.items() if type is not WardType.F]
+        wards = sorted(other_wards, key=lambda ward: expected_penalty[ward.type])
         for ward in wards:
             if not ward.is_full and ward.capacity > 0:
                 ward.capacity -= 1
