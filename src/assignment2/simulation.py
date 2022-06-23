@@ -309,8 +309,6 @@ class HospitalSimulation:
         self.total_penalty = 0
         self.time = 0
         self.patient_q = []
-
-        
     
     def update_wards(self):
         """Checks all wards if they have patients who are cured and removes them from the patients list"""
@@ -336,18 +334,26 @@ class HospitalSimulation:
         """Returns a stay time at random according to the stay time distribution"""
         return self.stay_dist(mean_stay_time)
       
-    def sim_multiple_year(self, n, stoptime=365):
+    
+    def simulate_only_occupation(self, n, stoptime=365):
+        return self.sim_multiple_with_f(
+            n, 
+            self.allocate_bed_to_f_occupation, 
+            self.relocate_none)
+
+    
+    def sim_multiple_with_f(self, n, allocation, relocation, stoptime=365):
         result = []
         for i in range(n):
             print(f'{i+1}/{n}', end='\r')
-            result.append(self.simulate_year(display=False, stoptime=stoptime))
+            result.append(self.simulate_with_f(display=False, stoptime=stoptime))
         return SimulationsSummary(result)
 
-    def sim_multiple_nof(self, n, stoptime=365):
+    def sim_multiple_without_f(self, n, stoptime=365):
         result = []
         for i in range(n):
             print(f'{i+1}/{n}', end='\r')
-            res = self.simulate_year_without_f(display=False, stoptime=stoptime)
+            res = self.simulate_without_f(display=False, stoptime=stoptime)
             result.append(res)
         return SimulationsSummary(result)
     
@@ -359,7 +365,7 @@ class HospitalSimulation:
             result.append(res)
         return SimulationsSummary(result)
     
-    def simulate_year(self, reset=True, display=True, stoptime=365):
+    def simulate_with_f(self, allocation, relocation, reset=True, display=True, stoptime=365):
         """Simulate a year in the given hospital"""
         if reset:
             self.reset_sim()
@@ -374,16 +380,16 @@ class HospitalSimulation:
             self.simulate_new_patient_to_q(patient)
             self.update_wards()
             if patient.preferred_ward is WardType.F:
-                self.assign_f_patient(patient)
+                self.assign_f_patient(patient, allocation)
             else:
-                self.relocate_bed_from_f()
+                relocation
                 self.assign_patient_to_ward(patient)
             
             self.patients.append(patient)
         
         return SimulationResult(self.patients.copy(), self.total_penalty, self.ward_configs)
 
-    def simulate_year_without_f(self, reset=True, display=True, stoptime=365):
+    def simulate_without_f(self, reset=True, display=True, stoptime=365):
         if reset:
             self.reset_sim()
             new_patients = self.sim_patients(self.wardlist_without_F)
@@ -401,14 +407,16 @@ class HospitalSimulation:
         
         return SimulationResult(self.patients.copy(), self.total_penalty, self.ward_configs)
 
-    def simulate_with_burnin(self, burnin=365, simulation_length = 365, display=True):
-        self.simulate_year_without_f(stoptime=365, dsiplay=display)
+    def simulate_with_burnin(self, allocation, relocation, burnin=365, simulation_length = 365, display=True):
+        self.simulate_without_f(stoptime=365, dsiplay=display)
         self.total_penalty = 0
         self.patients = []
-        self.simulate_year(reset=False, display=display, stoptime=burnin + simulation_length)
+        self.simulate_with_f(allocation=allocation, relocation=relocation, reset=False, display=display, stoptime=burnin + simulation_length)
         return SimulationResult(self.patients.copy(), self.total_penalty, self.ward_configs)
 
-    def simulate_occupatian_steal(self, simulation_length = 365, display=True):
+    
+    
+    def simulate_occupatian_steal(self, simulation_length = 365, display=True, reset=True):
         if reset:
             self.reset_sim()
             new_patients = self.sim_patients(self.wards.keys())
@@ -422,9 +430,8 @@ class HospitalSimulation:
             self.simulate_new_patient_to_q(patient)
             self.update_wards()
             if patient.preferred_ward is WardType.F:
-                self.assign_f_patient(patient)
+                self.assign_f_patient(patient, self.allocate_bed_to_f_occupation)
             else:
-                self.relocate_bed_from_f()
                 self.assign_patient_to_ward(patient)
             
             self.patients.append(patient)
@@ -466,10 +473,10 @@ class HospitalSimulation:
             self.switch_ward(patient)
 
 
-    def assign_f_patient(self, patient: Patient):
+    def assign_f_patient(self, patient: Patient, allocation_algorithm):
         ward = self.wards[WardType.F]
         if ward.accepted_fraction(next_is_rejected=1) <= 0.95:
-            self.allocate_bed_to_f()
+            allocation_algorithm()
         self.assign_patient_to_ward(patient)
     
 
@@ -484,6 +491,17 @@ class HospitalSimulation:
                 f_ward.capacity += 1
                 return
 
+    def allocate_bed_to_f_occupation(self):
+        self.update_wards()
+        f_ward = self.wards.get(WardType.F)
+        other_wards = [ward for type, ward in self.wards.items() if type is not WardType.F]
+        wards = sorted(other_wards, key=lambda ward: ward.fill_fraction)
+        for ward in wards:
+            if not ward.is_full and ward.capacity > 0:
+                ward.capacity -= 1
+                f_ward.capacity += 1
+                return
+    
     def relocate_bed_from_f(self):
         self.update_wards()
         f_ward = self.wards.get(WardType.F)
@@ -496,6 +514,6 @@ class HospitalSimulation:
         f_ward.capacity -= 1
         max_ward.capacity += 1
     
-    def rellocate_bed_from_F_greedy(self):
-        pass
+    def relocate_none(self):
+        return
         
