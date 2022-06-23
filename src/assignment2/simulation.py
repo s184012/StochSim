@@ -232,6 +232,16 @@ class SimulationsSummary:
     def __init__(self, results: 'list[SimulationResult]'):
         self.results: 'list[SimulationResult]' = results
     
+    def expected_probability_of_occupied(self, wards=list(WardType), alpha=0.95):
+        means, lwrs, uprs = [], [], []
+        for ward in wards:
+            _, mean, (lwr, upr) = self.state_from_ward_pct_distribution([PatientState.IN_WRONG_WARD, PatientState.REJECTED], [ward], alpha)
+            means.append(mean)
+            lwrs.append(lwr)
+            uprs.append(upr)
+        index = [ward.name for ward in wards]
+        return pd.DataFrame({'mean': means, 'lwr': lwrs, 'upr': uprs}, index=index).copy()
+    
     def expected_total_penalty(self, alpha=0.95):
         dist = [r.penalty for r in self.results]
         mean = np.mean(dist)
@@ -342,7 +352,6 @@ class HospitalSimulation:
         """Returns a stay time at random according to the stay time distribution"""
         return self.stay_dist(mean_stay_time)
       
-    
     def simulate_expected_penalty(self, n, expected_penalty, stoptime=365):
         allocate = lambda: self.allocate_bed_to_f_expected_penalty(expected_penalty)
         return self.sim_multiple_with_f(
