@@ -4,12 +4,8 @@ import heapq
 from typing import Callable, TypedDict, Union
 import numpy as np
 from scipy import stats
-<<<<<<< HEAD
 import seaborn as sns
-
-=======
 import pandas as pd
->>>>>>> 78776a126495934f7bc3a314ede432a73e9bca04
 
 from src.assignment1.cont import switch_probability
 
