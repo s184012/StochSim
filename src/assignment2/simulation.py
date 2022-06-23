@@ -348,7 +348,7 @@ class HospitalSimulation:
         result = []
         for i in range(n):
             print(f'{i+1}/{n}', end='\r')
-            result.append(self.simulate_with_f(display=False, stoptime=stoptime))
+            result.append(self.simulate_with_f( allocation, relocation, display=False, stoptime=stoptime))
         return SimulationsSummary(result)
 
     def sim_multiple_without_f(self, n, stoptime=365):
