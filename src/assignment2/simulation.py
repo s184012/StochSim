@@ -80,6 +80,7 @@ class HospitalConfiguration:
     switch_config: SwitchConfigurations
     inter_arrival_time_distribution: meantime_paramterized_distribution
     stay_time_distribution: meantime_paramterized_distribution
+    ward_list: 'list[WardType]' = WardType
 
 
 @dataclass(order=True)
@@ -121,6 +122,10 @@ class Ward:
         return self.number_of_current_patients == self.capacity
     
     @property
+    def is_empty(self):
+        return self.number_of_current_patients == 0 or self.capacity == 0
+    
+    @property
     def number_of_processed_patients(self):
         """Total number of patients who have tried to get into the ward"""
         return self.total_number_of_treated_patients + self.total_number_of_rejected_patients
@@ -132,16 +137,20 @@ class Ward:
     
     @property
     def fill_fraction(self):
-        """Fraction of the total capacity used"""
-        return self.number_of_current_patients / self.capacity
+        if self.capacity == 0:
+            return 1
+        else:
+            return self.number_of_current_patients / self.capacity
     
     @property
     def rellocation_score(self):
         """Score expressing how well the ward can handle a rellocation of a bed"""
-        return self.fill_fraction * self.urgency
+        return self.fill_fraction * self.urgency/29
 
     
     def accepted_fraction(self, next_is_rejected=0):
+        if self.number_of_processed_patients == 0:
+            return 0
         return self.total_number_of_treated_patients / (self.number_of_processed_patients + next_is_rejected)
     
 
@@ -156,10 +165,10 @@ class Ward:
 
     def process_patient(self, patient: Patient):
         if self.is_full:
-            self.reject_patient
+            self.reject_patient(patient)
             return patient
         else:
-            self.add_patient
+            self.add_patient(patient)
             return None
     
     def update_patients(self, time):
@@ -168,22 +177,55 @@ class Ward:
             heapq.heappop(self.patients)
 
 
+
+class SimulationResult:
+    """Contains the result of a simulation"""
+    def __init__(self, patients: 'list[Patient]') -> None:
+        self.patients = patients
+        self.number_of_patients = len(patients)
+        
+    
+    def rejected_pct_total(self):
+        pass
+
+    def ward(self, type: WardType):
+        return [p for p in self.patients if p.preferred_ward]
+    
+    def rejected_pct_ward(self, type: WardType):
+        rejected = len([p for p in self.ward(type) if p.state is PatientState.REJECTED])
+        return rejected / len(self.ward(type)) * 100
+    
+
+
+
+
+
+class SimulationsSummary:
+    """Summarises and compares different simulation results"""
+    def __init__(self, results: 'list[SimulationResult]'):
+        pass
+
+
 class HospitalSimulation:
 
     def __init__(self, config=HospitalConfiguration):
         self.ward_configs = config.wards_config
         self.switch_config = config.switch_config
-        self.wards = [Ward(ward, self.ward_configs.ward(ward)) for ward in WardType]
+        self.wardlist = config.ward_list
+        self.wards = [Ward(ward, self.ward_configs[ward]) for ward in config.ward_list]
         self.patients = []
         self.arr_dist = config.inter_arrival_time_distribution
         self.stay_dist = config.stay_time_distribution
         self.total_penalty = 0
         self.time = 0
-        self.patient_q = []
+        self.patient_q: 'list[Patient]' = []
 
+    @property
+    def wardlist_without_F(self):
+        return [ward for ward in self.wardlist if ward is not WardType.F]
     
     def reset_sim(self):
-        self.wards = {ward: Ward(ward, self.ward_configs.ward(ward)) for ward in WardType}
+        self.wards = {ward: Ward(ward, self.ward_configs[ward]) for ward in self.wardlist}
         self.patients = []
         self.total_penalty = 0
         self.time = 0
@@ -214,7 +256,7 @@ class HospitalSimulation:
     def sim_stay(self, mean_stay_time):
         """Returns a stay time at random according to the stay time distribution"""
         return self.stay_dist(mean_stay_time)
-        
+      
     def simulate_year(self, reset=True, display=True):
         """Simulate a year in the given hospital"""
         if reset:
@@ -228,12 +270,29 @@ class HospitalSimulation:
             patient = heapq.heappop(self.patient_q)
             self.update_time(patient)
             self.simulate_new_patient_to_q(patient)
+            self.update_wards()
             if patient.preferred_ward is WardType.F:
                 self.assign_f_patient(patient)
             else:
                 self.rellocate_bed_from_F()
                 self.assign_patient_to_ward(patient)
             
+            self.patients.append(patient)
+
+    def simulate_year_without_f(self, reset=True, display=True):
+        if reset:
+            self.reset_sim()
+            new_patients = self.sim_patients(self.wardlist_without_F)
+            self.update_patient_q([p for p in new_patients])
+
+        while self.time <= 365:
+            if display:
+                print(f'{self.time/365 * 100:.0f}%', end='\r')
+            patient = heapq.heappop(self.patient_q)
+            self.update_time(patient)
+            self.simulate_new_patient_to_q(patient)
+            self.update_wards()
+            self.assign_patient_to_ward(patient)
             self.patients.append(patient)
 
     def update_time(self, patient: Patient):
@@ -267,35 +326,33 @@ class HospitalSimulation:
     def assign_patient_to_ward(self, patient: Patient) -> None:
         """If possible, assigns a patient to their preferred ward, else rellocates them"""
         ward = self.wards[patient.preferred_ward]
-        ward.update_patients(self.time)
-        if ward.is_full:
+        if ward.process_patient(patient):
             self.switch_ward(patient)
-        else:
-            ward.add_patient(patient)
 
 
     def assign_f_patient(self, patient: Patient):
         ward = self.wards[WardType.F]
-        if ward.accepted_fraction(next_is_rejected=1) > 0.95:
-            self.switch_ward(patient)
-        else:
+        print(ward.accepted_fraction(next_is_rejected=0))
+        if ward.accepted_fraction(next_is_rejected=1) <= 0.95:
             self.rellocate_bed_to_F()
-            self.assign_patient_to_ward(patient)
+        self.assign_patient_to_ward(patient)
     
 
     def rellocate_bed_to_F(self):
         self.update_wards()
         f_ward = self.wards.get(WardType.F)
         other_wards = [ward for type, ward in self.wards.items() if type is not WardType.F]
-        min_ward = min(other_wards, key=lambda ward: (ward.rellocation_score, ward.urgency))
-        if not min_ward.is_full:
-            min_ward.capacity -= 1
-            f_ward.capacity += 1
+        wards = sorted(other_wards, key=lambda ward: (ward.rellocation_score, ward.urgency))
+        for ward in wards:
+            if not ward.is_full and ward.capacity > 0:
+                ward.capacity -= 1
+                f_ward.capacity += 1
+                return
 
     def rellocate_bed_from_F(self):
         self.update_wards()
         f_ward = self.wards.get(WardType.F)
-        if f_ward.is_full:
+        if f_ward.capacity == 0 or f_ward.is_full:
             return
 
         other_wards = [ward for type, ward in self.wards.items() if type is not WardType.F]
