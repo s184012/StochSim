@@ -612,4 +612,5 @@ def hist_plot(data, legend=''):
 def barplot(df=None, wards = list(WardType), label=''):
     g = sns.barplot(x=[ward.name for ward in wards], y=df['mean'])
     g.set_ylabel(label)
+    g.set_xlabel('Wards')
     g.set_title(label)
