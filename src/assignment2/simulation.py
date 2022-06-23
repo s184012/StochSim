@@ -499,7 +499,7 @@ class HospitalSimulation:
 
 
     def assign_f_patient(self, patient: Patient, allocation_algorithm):
-        ward = self.wards[WardType.F]
+        ward = self.wards[WardType.F.value]
         if ward.accepted_fraction(next_is_rejected=1) <= 0.95:
             allocation_algorithm()
         self.assign_patient_to_ward(patient)
@@ -531,7 +531,7 @@ class HospitalSimulation:
         self.update_wards()
         f_ward = self.wards.get(WardType.F)
         other_wards = [ward for type, ward in self.wards.items() if type is not WardType.F]
-        wards = sorted(other_wards, key=lambda ward: self.ward_configs[ward].bed_capacity - ward.capacity)
+        wards = sorted(other_wards, key=lambda ward: self.ward_configs[ward.type].bed_capacity - ward.capacity)
         for ward in wards:
             if not ward.is_full and ward.capacity > 0:
                 ward.capacity -= 1
