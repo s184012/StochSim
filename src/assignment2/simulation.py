@@ -4,8 +4,10 @@ import heapq
 from typing import Callable, TypedDict, Union
 import numpy as np
 from scipy import stats
+import seaborn as sns
 import pandas as pd
 
+sns.set_theme(style='darkgrid')
 from src.assignment1.cont import switch_probability
 
 class WardType(IntEnum):
@@ -414,9 +416,7 @@ class HospitalSimulation:
         self.simulate_with_f(allocation=allocation, relocation=relocation, reset=False, display=display, stoptime=burnin + simulation_length)
         return SimulationResult(self.patients.copy(), self.total_penalty, self.ward_configs)
 
-    
-    
-    def simulate_occupatian_steal(self, simulation_length = 365, display=True, reset=True):
+    def simulate_occupation_steal(self, stoptime = 365, display=True, reset = True):
         if reset:
             self.reset_sim()
             new_patients = self.sim_patients(self.wards.keys())
@@ -517,3 +517,21 @@ class HospitalSimulation:
     def relocate_none(self):
         return
         
+    def rellocate_bed_from_F_greedy(self):
+        pass
+
+
+def hist_comp_plot(data1, data2, legend1='', legend2=''):
+    df = pd.DataFrame({
+    legend1: data1,
+    legend2: data2
+    })
+    sns.histplot(df)
+    return
+
+def hist_plot(data, legend=''):
+    df = pd.DataFrame({
+        legend: data
+    })
+    sns.histplot(df)
+    return
