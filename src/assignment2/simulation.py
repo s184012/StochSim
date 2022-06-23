@@ -338,9 +338,10 @@ class HospitalSimulation:
       
     
     def simulate_expected_penalty(self, n, expected_penalty, stoptime=365):
+        allocate = lambda: self.allocate_bed_to_f_expected_penalty(expected_penalty)
         return self.sim_multiple_with_f(
             n,
-            self.allocate_bed_to_f_expected_penalty(expected_penalty),
+            allocate,
             self.relocate_none,
             stoptime=365
         )
@@ -578,6 +579,20 @@ class HospitalSimulation:
     
     def rellocate_inverse_meassure(self):
         pass
+
+
+def hist_performance(sim: SimulationsSummary):
+    admission = sim.expected_admissions()['mean']
+    rejection = sim.expected_relocations()['mean']
+    penalty = sim.expected_penalty()['mean']
+    df = pd.DataFrame({
+        'Expected Admissions': admission,
+        'Expected Relocations': rejection,
+        'Expected Urgency': penalty,
+    },
+    index=list(WardType))
+    sns.histplot(data=df)
+    return df
 
 
 def hist_comp_plot(data1, data2, legend1='', legend2=''):
