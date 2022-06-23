@@ -4,8 +4,12 @@ import heapq
 from typing import Callable, TypedDict, Union
 import numpy as np
 from scipy import stats
+<<<<<<< HEAD
 import seaborn as sns
 
+=======
+import pandas as pd
+>>>>>>> 78776a126495934f7bc3a314ede432a73e9bca04
 
 from src.assignment1.cont import switch_probability
 
@@ -249,21 +253,41 @@ class SimulationsSummary:
         sd = bootstrap(dist, np.std, 10_000)
         return dist, mean, stats.norm(loc=mean, scale=sd).interval(alpha)
     
-    def expected_penalty_from_wards(self, wards: 'list[WardType]', alpha=.95):
+    def penalty_from_wards(self, wards: 'list[WardType]', alpha=.95):
         dist = [r.penalty_from_wards(wards) for r in self.results]
         mean = np.mean(dist)
         sd = bootstrap(dist, np.std, 10_000)
-        return dist, mean, stats.norm(loc=mean, scale=sd).interval(alpha)        
+        return dist, mean, stats.norm(loc=mean, scale=sd).interval(alpha)      
 
+    def expected_admissions(self, wards: 'list[WardType]'=list(WardType)):
+        means, lwrs, uprs = [], [], []
+        for ward in wards:
+            _, mean, (lwr, upr) = self.number_of_state_in_ward([PatientState.IN_CORRECT_WARD], [ward])
+            means.append(mean)
+            lwrs.append(lwr)
+            uprs.append(upr)
+        index = [ward.name for ward in wards]
+        return pd.DataFrame({'mean': means, 'lwr': lwrs, 'upr': uprs}, index=index)
     
-
-
-
+    def expected_relocations(self, wards: 'list[WardType]'=list(WardType)):
+        means, lwrs, uprs = [], [], []
+        for ward in wards:
+            _, mean, (lwr, upr) = self.number_of_state_from_ward([PatientState.REJECTED, PatientState.IN_WRONG_WARD], [ward])
+            means.append(mean)
+            lwrs.append(lwr)
+            uprs.append(upr)
+        index = [ward.name for ward in wards]
+        return pd.DataFrame({'mean': means, 'lwr': lwrs, 'upr': uprs}, index=index)
     
-
-    
-
-        
+    def expected_penalty(self, wards: 'list[WardType]' = list(WardType)):
+        means, lwrs, uprs = [], [], []
+        for ward in wards:
+            _, mean, (lwr, upr) = self.penalty_from_wards(ward)
+            means.append(mean)
+            lwrs.append(lwr)
+            uprs.append(upr)
+        index = [ward.name for ward in wards]
+        return pd.DataFrame({'mean': means, 'lwr': lwrs, 'upr': uprs}, index=index)
 
 
 class HospitalSimulation:
@@ -357,7 +381,7 @@ class HospitalSimulation:
             if patient.preferred_ward is WardType.F:
                 self.assign_f_patient(patient)
             else:
-                self.rellocate_bed_from_F()
+                self.relocate_bed_from_f()
                 self.assign_patient_to_ward(patient)
             
             self.patients.append(patient)
@@ -389,6 +413,28 @@ class HospitalSimulation:
         self.simulate_year(reset=False, display=display, stoptime=burnin + simulation_length)
         return SimulationResult(self.patients.copy(), self.total_penalty, self.ward_configs)
 
+    def simulate_occupatian_steal(self, simulation_length = 365, display=True):
+        if reset:
+            self.reset_sim()
+            new_patients = self.sim_patients(self.wards.keys())
+            self.update_patient_q([p for p in new_patients])
+
+        while self.time <= stoptime:
+            if display:
+                print(f'{self.time/365 * 100:.0f}%', end='\r')
+            patient = heapq.heappop(self.patient_q)
+            self.update_time(patient)
+            self.simulate_new_patient_to_q(patient)
+            self.update_wards()
+            if patient.preferred_ward is WardType.F:
+                self.assign_f_patient(patient)
+            else:
+                self.relocate_bed_from_f()
+                self.assign_patient_to_ward(patient)
+            
+            self.patients.append(patient)
+        
+        return SimulationResult(self.patients.copy(), self.total_penalty, self.ward_configs)
     
     def update_time(self, patient: Patient):
         self.time = patient.arrival_time
@@ -428,11 +474,11 @@ class HospitalSimulation:
     def assign_f_patient(self, patient: Patient):
         ward = self.wards[WardType.F]
         if ward.accepted_fraction(next_is_rejected=1) <= 0.95:
-            self.rellocate_bed_to_F()
+            self.allocate_bed_to_f()
         self.assign_patient_to_ward(patient)
     
 
-    def rellocate_bed_to_F(self):
+    def allocate_bed_to_f(self):
         self.update_wards()
         f_ward = self.wards.get(WardType.F)
         other_wards = [ward for type, ward in self.wards.items() if type is not WardType.F]
@@ -443,7 +489,7 @@ class HospitalSimulation:
                 f_ward.capacity += 1
                 return
 
-    def rellocate_bed_from_F(self):
+    def relocate_bed_from_f(self):
         self.update_wards()
         f_ward = self.wards.get(WardType.F)
         if f_ward.capacity == 0 or f_ward.is_full:
