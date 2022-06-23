@@ -538,6 +538,17 @@ class HospitalSimulation:
                 f_ward.capacity += 1
                 return
     
+    def allocate_bed_to_f_expected_penalty(self, expected_penalty):
+        self.update_wards()
+        f_ward = self.wards.get(WardType.F)
+        other_wards = [ward for type, ward in self.wards.items() if type is not WardType.F]
+        wards = sorted(other_wards, key=lambda ward: expected_penalty[ward.type])
+        for ward in wards:
+            if not ward.is_full and ward.capacity > 0:
+                ward.capacity -= 1
+                f_ward.capacity += 1
+                return
+    
     def relocate_bed_from_f(self):
         self.update_wards()
         f_ward = self.wards.get(WardType.F)
