@@ -232,6 +232,12 @@ class SimulationsSummary:
     def __init__(self, results: 'list[SimulationResult]'):
         self.results: 'list[SimulationResult]' = results
     
+    def expected_total_penalty(self, alpha=0.95):
+        dist = [r.penalty for r in self.results]
+        mean = np.mean(dist)
+        sd = bootstrap(dist, np.std, 10_000)
+        return dist, mean, stats.norm(loc=mean, scale=sd).interval(alpha)      
+
     def state_from_ward_pct_distribution(self, states: 'list[PatientState]', wards: 'list[WardType]', alpha=0.95):
         dist = [r.states_from_wards_pct(states, wards) for r in self.results]
         mean = np.mean(dist)
