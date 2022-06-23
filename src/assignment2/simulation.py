@@ -337,11 +337,22 @@ class HospitalSimulation:
         return self.stay_dist(mean_stay_time)
       
     
+
+    
+    def simulate_occupation_and_penalty(self, n, stoptime=365):
+        return self.sim_multiple_with_f(
+            n,
+            self.allocate_bed_to_f_occ_penalty,
+            self.relocate_none,
+            stoptime=365
+        )
+
     def simulate_only_occupation(self, n, stoptime=365):
         return self.sim_multiple_with_f(
             n, 
             self.allocate_bed_to_f_occupation, 
-            self.relocate_none)
+            self.relocate_none,
+            stoptime=365)
 
     
     def sim_multiple_with_f(self, n, allocation, relocation, stoptime=365):
@@ -480,7 +491,7 @@ class HospitalSimulation:
         self.assign_patient_to_ward(patient)
     
 
-    def allocate_bed_to_f(self):
+    def allocate_bed_to_f_occ_penalty(self):
         self.update_wards()
         f_ward = self.wards.get(WardType.F)
         other_wards = [ward for type, ward in self.wards.items() if type is not WardType.F]
