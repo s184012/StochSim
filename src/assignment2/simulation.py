@@ -218,7 +218,7 @@ class SimulationsSummary:
     def __init__(self, results: 'list[SimulationResult]'):
         self.results = results
     
-    
+
     
 
         
@@ -376,7 +376,7 @@ class HospitalSimulation:
                 f_ward.capacity += 1
                 return
 
-    def rellocate_bed_from_F(self):
+    def rellocate_bed_from_F_urgency(self):
         self.update_wards()
         f_ward = self.wards.get(WardType.F)
         if f_ward.capacity == 0 or f_ward.is_full:
@@ -387,3 +387,6 @@ class HospitalSimulation:
         
         f_ward.capacity -= 1
         max_ward.capacity += 1
+    
+    def rellocate_bed_from_F_greedy(self):
+        pass
