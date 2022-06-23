@@ -410,7 +410,7 @@ class HospitalSimulation:
         self.simulate_year(reset=False, display=display, stoptime=burnin + simulation_length)
         return SimulationResult(self.patients.copy(), self.total_penalty, self.ward_configs)
 
-    def simulate_occupation_steal(self, simulation_length = 365, display=True, reset = True, stoptime = 365):
+    def simulate_occupation_steal(self, stoptime = 365, display=True, reset = True):
         if reset:
             self.reset_sim()
             new_patients = self.sim_patients(self.wards.keys())
