@@ -4,6 +4,8 @@ import heapq
 from typing import Callable, TypedDict, Union
 import numpy as np
 from scipy import stats
+import seaborn as sns
+
 
 from src.assignment1.cont import switch_probability
 
@@ -455,3 +457,9 @@ class HospitalSimulation:
     
     def rellocate_bed_from_F_greedy(self):
         pass
+
+
+def hist_comp_plot(data1, data2):
+    
+    
+    return
