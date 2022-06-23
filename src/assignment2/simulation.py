@@ -275,6 +275,29 @@ class HospitalSimulation:
         """Returns a stay time at random according to the stay time distribution"""
         return self.stay_dist(mean_stay_time)
       
+    def sim_multiple_year(self, n, stoptime=365):
+        result = []
+        for i in range(n):
+            print(f'{i+1}/{n}', end='\r')
+            result.append(self.simulate_year(display=False, stoptime=stoptime))
+        return SimulationsSummary(result)
+
+    def sim_multiple_nof(self, n, stoptime=365):
+        result = []
+        for i in range(n):
+            print(f'{i+1}/{n}', end='\r')
+            res = self.simulate_year_without_f(display=False, stoptime=stoptime)
+            result.append(res)
+        return SimulationsSummary(result)
+    
+    def sim_multiple_burnin(self, n, burnin=365, simulation_length=365):
+        result  =[]
+        for i in range(n):
+            print(f'{i+1}/{n}', end='r')
+            res = self.simulate_with_burnin(display=False, burnin=burnin, simulation_length=simulation_length)
+            result.append(res)
+        return SimulationsSummary(result)
+    
     def simulate_year(self, reset=True, display=True, stoptime=365):
         """Simulate a year in the given hospital"""
         if reset:
@@ -296,6 +319,8 @@ class HospitalSimulation:
                 self.assign_patient_to_ward(patient)
             
             self.patients.append(patient)
+        
+        return SimulationResult(self.patients.copy(), self.total_penalty, self.ward_configs)
 
     def simulate_year_without_f(self, reset=True, display=True, stoptime=365):
         if reset:
@@ -312,14 +337,15 @@ class HospitalSimulation:
             self.update_wards()
             self.assign_patient_to_ward(patient)
             self.patients.append(patient)
+        
+        return SimulationResult(self.patients.copy(), self.total_penalty, self.ward_configs)
 
     def simulate_with_burnin(self, burnin=365, simulation_length = 365, display=True):
         self.simulate_year_without_f(stoptime=365, dsiplay=display)
         self.total_penalty = 0
         self.patients = []
         self.simulate_year(reset=False, display=display, stoptime=burnin + simulation_length)
-
-
+        return SimulationResult(self.patients.copy(), self.total_penalty, self.ward_configs)
 
     
     def update_time(self, patient: Patient):
@@ -376,7 +402,7 @@ class HospitalSimulation:
                 f_ward.capacity += 1
                 return
 
-    def rellocate_bed_from_F_urgency(self):
+    def rellocate_bed_from_F(self):
         self.update_wards()
         f_ward = self.wards.get(WardType.F)
         if f_ward.capacity == 0 or f_ward.is_full:
