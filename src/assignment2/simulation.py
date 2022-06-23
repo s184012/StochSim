@@ -184,9 +184,11 @@ class SimulationResult:
         self.patients = patients
         self.number_of_patients = len(patients)
         
-    
-    def rejected_pct_total(self):
-        pass
+    def state(self, state: PatientState):
+        return [p for p in self.patients]
+
+    def state_pct_total(self, state: PatientState):
+        count = []
 
     def ward(self, type: WardType):
         return [p for p in self.patients if p.preferred_ward]
@@ -194,6 +196,8 @@ class SimulationResult:
     def rejected_pct_ward(self, type: WardType):
         rejected = len([p for p in self.ward(type) if p.state is PatientState.REJECTED])
         return rejected / len(self.ward(type)) * 100
+    
+    
     
 
 
@@ -257,14 +261,14 @@ class HospitalSimulation:
         """Returns a stay time at random according to the stay time distribution"""
         return self.stay_dist(mean_stay_time)
       
-    def simulate_year(self, reset=True, display=True):
+    def simulate_year(self, reset=True, display=True, stoptime=365):
         """Simulate a year in the given hospital"""
         if reset:
             self.reset_sim()
             new_patients = self.sim_patients(self.wards.keys())
             self.update_patient_q([p for p in new_patients])
 
-        while self.time <= 365:
+        while self.time <= stoptime:
             if display:
                 print(f'{self.time/365 * 100:.0f}%', end='\r')
             patient = heapq.heappop(self.patient_q)
@@ -279,13 +283,13 @@ class HospitalSimulation:
             
             self.patients.append(patient)
 
-    def simulate_year_without_f(self, reset=True, display=True):
+    def simulate_year_without_f(self, reset=True, display=True, stoptime=365):
         if reset:
             self.reset_sim()
             new_patients = self.sim_patients(self.wardlist_without_F)
             self.update_patient_q([p for p in new_patients])
 
-        while self.time <= 365:
+        while self.time <= stoptime:
             if display:
                 print(f'{self.time/365 * 100:.0f}%', end='\r')
             patient = heapq.heappop(self.patient_q)
@@ -295,6 +299,15 @@ class HospitalSimulation:
             self.assign_patient_to_ward(patient)
             self.patients.append(patient)
 
+    def simulate_with_burnin(self, burnin=365, simulation_length = 365, display=True):
+        self.simulate_year_without_f(stoptime=365, dsiplay=display)
+        self.total_penalty = 0
+        self.patients = []
+        self.simulate_year(reset=False, display=display, stoptime=burnin + simulation_length)
+
+
+
+    
     def update_time(self, patient: Patient):
         self.time = patient.arrival_time
     
