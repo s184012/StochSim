@@ -565,6 +565,18 @@ class HospitalSimulation:
         return
         
     def rellocate_bed_from_F_greedy(self):
+        self.update_wards()
+        f_ward = self.wards.get(WardType.F)
+        if f_ward.capacity == 0 or f_ward.is_full:
+            return
+
+        other_wards = [ward for type, ward in self.wards.items() if type is not WardType.F]
+        max_ward = max(other_wards, key=lambda ward: (ward.fill_fraction, ward.urgency))
+        
+        f_ward.capacity -= 1
+        max_ward.capacity += 1
+    
+    def rellocate_inverse_meassure(self):
         pass
 
 
