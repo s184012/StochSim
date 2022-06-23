@@ -4,6 +4,7 @@ import heapq
 from typing import Callable, TypedDict, Union
 import numpy as np
 from scipy import stats
+import pandas as pd
 
 from src.assignment1.cont import switch_probability
 
@@ -247,21 +248,41 @@ class SimulationsSummary:
         sd = bootstrap(dist, np.std, 10_000)
         return dist, mean, stats.norm(loc=mean, scale=sd).interval(alpha)
     
-    def expected_penalty_from_wards(self, wards: 'list[WardType]', alpha=.95):
+    def penalty_from_wards(self, wards: 'list[WardType]', alpha=.95):
         dist = [r.penalty_from_wards(wards) for r in self.results]
         mean = np.mean(dist)
         sd = bootstrap(dist, np.std, 10_000)
-        return dist, mean, stats.norm(loc=mean, scale=sd).interval(alpha)        
+        return dist, mean, stats.norm(loc=mean, scale=sd).interval(alpha)      
 
+    def expected_admissions(self, wards: 'list[WardType]'=list(WardType)):
+        means, lwrs, uprs = [], [], []
+        for ward in wards:
+            _, mean, (lwr, upr) = self.number_of_state_in_ward([PatientState.IN_CORRECT_WARD], [ward])
+            means.append(mean)
+            lwrs.append(lwr)
+            uprs.append(upr)
+        index = [ward.name for ward in wards]
+        return pd.DataFrame({'mean': means, 'lwr': lwrs, 'upr': uprs}, index=index)
     
-
-
-
+    def expected_relocations(self, wards: 'list[WardType]'=list(WardType)):
+        means, lwrs, uprs = [], [], []
+        for ward in wards:
+            _, mean, (lwr, upr) = self.number_of_state_from_ward([PatientState.REJECTED, PatientState.IN_WRONG_WARD], [ward])
+            means.append(mean)
+            lwrs.append(lwr)
+            uprs.append(upr)
+        index = [ward.name for ward in wards]
+        return pd.DataFrame({'mean': means, 'lwr': lwrs, 'upr': uprs}, index=index)
     
-
-    
-
-        
+    def expected_penalty(self, wards: 'list[WardType]' = list(WardType)):
+        means, lwrs, uprs = [], [], []
+        for ward in wards:
+            _, mean, (lwr, upr) = self.penalty_from_wards(ward)
+            means.append(mean)
+            lwrs.append(lwr)
+            uprs.append(upr)
+        index = [ward.name for ward in wards]
+        return pd.DataFrame({'mean': means, 'lwr': lwrs, 'upr': uprs}, index=index)
 
 
 class HospitalSimulation:
