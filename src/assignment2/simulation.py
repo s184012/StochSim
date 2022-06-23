@@ -7,6 +7,7 @@ from scipy import stats
 import seaborn as sns
 import pandas as pd
 
+sns.set_theme(style='darkgrid')
 from src.assignment1.cont import switch_probability
 
 class WardType(IntEnum):
@@ -501,7 +502,17 @@ class HospitalSimulation:
         pass
 
 
-def hist_comp_plot(data1, data2):
-    
-    
+def hist_comp_plot(data1, data2, legend1='', legend2=''):
+    df = pd.DataFrame({
+    legend1: data1,
+    legend2: data2
+    })
+    sns.histplot(df)
+    return
+
+def hist_plot(data, legend=''):
+    df = pd.DataFrame({
+        legend: data
+    })
+    sns.histplot(df)
     return
