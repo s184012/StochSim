@@ -17,10 +17,9 @@ class WardType(IntEnum):
 
 class PatientState(Enum):
     PENDING = 0
-    IN_CORRECT_YARD = 1
-    IN_WRONG_YARD = 2
-    CURED = 3
-    REJECTED = 4
+    IN_CORRECT_WARD = 1
+    IN_WRONG_WARD = 2
+    REJECTED = 3
 
 
 @dataclass
@@ -86,17 +85,17 @@ class HospitalConfiguration:
 @dataclass(order=True)
 class Patient:
     preferred_ward: WardType=field(compare = False)
-    arrival_time: float
-    stay_time: dict=field(compare = False)
+    arrival_time: float=field(repr=False)
+    stay_time: dict=field(compare = False, repr=False)
     state: PatientState=field(compare = False, default=PatientState.PENDING)
     assigned_ward: WardType = None
 
     def update_ward(self, ward: WardType):
         self.assigned_ward = ward
         if self.assigned_ward is self.preferred_ward:
-            self.state = PatientState.IN_CORRECT_YARD
+            self.state = PatientState.IN_CORRECT_WARD
         else:
-            self.state = PatientState.IN_WRONG_YARD
+            self.state = PatientState.IN_WRONG_WARD
 
 
 @dataclass
@@ -173,7 +172,6 @@ class Ward:
     
     def update_patients(self, time):
         while self.patients and self.patients[0][0] <= time:
-            self.patients[0][1].type = PatientState.CURED
             heapq.heappop(self.patients)
 
 
@@ -186,37 +184,79 @@ class SimulationResult:
         self.config = ward_config
         self.number_of_patients = len(patients)
     
-    def state(self, state: PatientState):
-        return [p for p in self.patients]
+    def state(self, states: 'list[PatientState]'):
+        return [p for p in self.patients if p.state in states]
 
-    def state_pct_total(self, state: PatientState):
-        count = len([p for p in self.patients if p.state is state])
+    def state_pct_total(self, states: 'list[PatientState]'):
+        count = len([p for p in self.patients if p.state in states])
         return count / self.number_of_patients * 100
 
-    def ward(self, ward: WardType):
-        return [p for p in self.patients if p.assigned_ward is ward]
+    def in_ward(self, wards: 'list[WardType]'):
+        return [p for p in self.patients if p.assigned_ward in wards]
+
+    def from_ward(self, wards: 'list[WardType]'):
+        return [p for p in self.patients if p.preferred_ward in wards]
     
-    def state_from_ward(self, state: PatientState, ward: WardType):
-        return [p for p in self.ward(ward) if p.state is state]
+    def states_in_wards(self, states: 'list[PatientState]', wards: 'list[WardType]'):
+        wards.append(None)
+        return [p for p in self.patients if p.state in states and p.assigned_ward in wards]
     
-    def state_pct_ward(self, state: PatientState, ward: WardType):
-        return len(self.state_from_ward(state, ward)) / len(self.ward(ward)) * 100
+    def states_in_wards_pct(self, states: 'list[PatientState]', wards: 'list[WardType]'):
+        return len(self.states_in_wards(states, wards)) / len(self.in_ward(wards)) * 100
     
-    def relocated_from(self, ward):
-        [p for p in self.state(PatientState.IN_WRONG_YARD) if p.preferred_ward is ward]
+    def states_from_wards(self, states, wards):
+        return [p for p in self.patients if p.preferred_ward in wards and p.state in states]
     
-    def relocated_from_pct(self, ward):
-        return len(self.relocated_from(ward)) / len(self.ward(ward))
+    def states_from_wards_pct(self, states, wards):
+        return len(self.states_from_wards(states, wards)) / len(self.from_ward(wards))
     
-    def penalty_from_ward(self, ward: WardType):
-        return len(self.relocated_from(ward)) * self.config[ward].urgency
+    def penalty_from_wards(self, ward: WardType):
+        return len(self.states_from_wards([PatientState.REJECTED, PatientState.IN_WRONG_WARD], [ward])) * self.config[ward].urgency
     
+
+def bootstrap(data, stat_func=lambda x: np.median, size = 1000):
+    x = [np.random.choice(data, len(data)) for _ in range(size)]
+    stat = stat_func(x, axis=1)
+    return stat.std()
+
+def mean_conf(mean, std, alpha=.95):
+    t = stats.t.interval(alpha=alpha)
+
 
 
 class SimulationsSummary:
     """Summarises and compares different simulation results"""
     def __init__(self, results: 'list[SimulationResult]'):
-        self.results = results
+        self.results: 'list[SimulationResult]' = results
+    
+    def state_from_ward_pct_distribution(self, states: 'list[PatientState]', wards: 'list[WardType]', alpha=0.95):
+        dist = [r.states_from_wards_pct(states, wards) for r in self.results]
+        mean = np.mean(dist)
+        sd = bootstrap(dist, np.std, 10_000)
+        return dist, mean, stats.norm(loc=mean, scale=sd).interval(alpha)
+    
+    def number_of_state_in_ward(self, states: 'list[PatientState]', wards: 'list[WardType]', alpha=0.95):
+        dist = [len(r.states_in_wards(states, wards)) for r in self.results]
+        mean = np.mean(dist)
+        sd = bootstrap(dist, np.std, 10_000)
+        return dist, mean, stats.norm(loc=mean, scale=sd).interval(alpha)
+    
+    def number_of_state_from_ward(self, states: 'list[PatientState]', wards: 'list[WardType]', alpha = 0.95):
+        dist = [len(r.states_from_wards(states, wards)) for r in self.results]
+        mean = np.mean(dist)
+        sd = bootstrap(dist, np.std, 10_000)
+        return dist, mean, stats.norm(loc=mean, scale=sd).interval(alpha)
+    
+    def expected_penalty_from_wards(self, wards: 'list[WardType]', alpha=.95):
+        dist = [r.penalty_from_wards(wards) for r in self.results]
+        mean = np.mean(dist)
+        sd = bootstrap(dist, np.std, 10_000)
+        return dist, mean, stats.norm(loc=mean, scale=sd).interval(alpha)        
+
+    
+
+
+
     
 
     
@@ -385,7 +425,6 @@ class HospitalSimulation:
 
     def assign_f_patient(self, patient: Patient):
         ward = self.wards[WardType.F]
-        print(ward.accepted_fraction(next_is_rejected=0))
         if ward.accepted_fraction(next_is_rejected=1) <= 0.95:
             self.rellocate_bed_to_F()
         self.assign_patient_to_ward(patient)
